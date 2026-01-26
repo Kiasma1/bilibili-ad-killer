@@ -1,0 +1,112 @@
+{
+  "appName": {
+    "message": "B站广告杀手",
+    "description": "扩展名称"
+  },
+  "appDescription": {
+    "message": "通过AI自动跳过B站视频中的广告",
+    "description": "扩展描述"
+  },
+  "configTab": {
+    "message": "配置"
+  },
+  "basicConfig": {
+    "message": "基本配置"
+  },
+  "instructionsTab": {
+    "message": "教程"
+  },
+  "aiConfig": {
+    "message": "AI 配置"
+  },
+  "autoSkipAds": {
+    "message": "自动跳过广告"
+  },
+  "usingBrowserAIModel": {
+    "message": "使用浏览器模型"
+  },
+  "ignoreVideoLessThan5Minutes": {
+    "message": "忽略小于5分钟的视频"
+  },
+  "modelDownloadProgress": {
+    "message": "模型下载进度"
+  },
+  "downloadModel": {
+    "message": "下载 AI 模型"
+  },
+  "aiModel": {
+    "message": "AI 模型"
+  },
+  "selectAiModel": {
+    "message": "选择 AI 模型"
+  },
+  "apiKey": {
+    "message": "API 密钥"
+  },
+  "enterApiKey": {
+    "message": "请输入您的 API 密钥"
+  },
+  "cancel": {
+    "message": "取消"
+  },
+  "save": {
+    "message": "保存"
+  },
+  "deepseek": {
+    "message": "DeepSeek"
+  },
+  "gemini": {
+    "message": "Gemini"
+  },
+  "deepseekChat": {
+    "message": "DeepSeek Chat"
+  },
+  "deepseekReasoner": {
+    "message": "DeepSeek Reasoner"
+  },
+  "gemini20Flash": {
+    "message": "Gemini 2.0 Flash"
+  },
+  "gemini15Flash": {
+    "message": "Gemini 1.5 Flash"
+  },
+  "gemini15Pro": {
+    "message": "Gemini 1.5 Pro"
+  },
+  "howToUse": {
+    "message": "使用教程"
+  },
+  "saved": {
+    "message": "保存成功"
+  },
+  "error": {
+    "message": "错误"
+  },
+  "refreshToApply": {
+    "message": "刷新页面后生效"
+  },
+  "noApiKeyProvided": {
+    "message": "未提供 API 密钥，请在设置中配置"
+  },
+  "aiNotInitialized": {
+    "message": "AI 未初始化，请在扩展设置中配置 API 密钥"
+  },
+  "aiServiceFailed": {
+    "message": "无法连接到 AI 服务，请检查网络连接"
+  },
+  "checkBrowserModelDownloadProgress": {
+    "message": "查看浏览器模型下载进度"
+  },
+  "failedToDownloadModel": {
+    "message": "下载模型失败，请重试"
+  },
+  "browserModelNotSupported": {
+    "message": "该浏览器不支持该功能"
+  },
+  "modelIsDownloading": {
+    "message": "模型正在下载，请稍后再试"
+  },
+  "notLoginYet": {
+    "message": "未登录，请先登录"
+  }
+}

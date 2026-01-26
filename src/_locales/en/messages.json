@@ -1,0 +1,112 @@
+{
+  "appName": {
+    "message": "Bilibili Ad Killer",
+    "description": "Extension name"
+  },
+  "appDescription": {
+    "message": "Skip ads in Bilibili videos automatically by AI",
+    "description": "Extension description"
+  },
+  "configTab": {
+    "message": "Config"
+  },
+  "basicConfig": {
+    "message": "Basic Config"
+  },
+  "instructionsTab": {
+    "message": "Instructions"
+  },
+  "aiConfig": {
+    "message": "AI Config"
+  },
+  "modelDownloadProgress": {
+    "message": "Model Download Progress"
+  },
+  "downloadModel": {
+    "message": "Download AI Model"
+  },
+  "autoSkipAds": {
+    "message": "Auto Skip Ads"
+  },
+  "usingBrowserAIModel": {
+    "message": "Using Browser Model"
+  },
+  "ignoreVideoLessThan5Minutes": {
+    "message": "Ignore videos less than 5 minutes"
+  },
+  "aiModel": {
+    "message": "AI Model"
+  },
+  "selectAiModel": {
+    "message": "Select AI model"
+  },
+  "apiKey": {
+    "message": "API Key"
+  },
+  "enterApiKey": {
+    "message": "Enter your API key"
+  },
+  "cancel": {
+    "message": "Cancel"
+  },
+  "save": {
+    "message": "Save"
+  },
+  "deepseek": {
+    "message": "DeepSeek"
+  },
+  "gemini": {
+    "message": "Gemini"
+  },
+  "deepseekChat": {
+    "message": "DeepSeek Chat"
+  },
+  "deepseekReasoner": {
+    "message": "DeepSeek Reasoner"
+  },
+  "gemini20Flash": {
+    "message": "Gemini 2.0 Flash"
+  },
+  "gemini15Flash": {
+    "message": "Gemini 1.5 Flash"
+  },
+  "gemini15Pro": {
+    "message": "Gemini 1.5 Pro"
+  },
+  "howToUse": {
+    "message": "How to use"
+  },
+  "saved": {
+    "message": "Saved"
+  },
+  "error": {
+    "message": "Error"
+  },
+  "refreshToApply": {
+    "message": "Refresh to apply the changes"
+  },
+  "noApiKeyProvided": {
+    "message": "No API key provided. Please configure in settings."
+  },
+  "aiNotInitialized": {
+    "message": "AI not initialized. Please configure API key in extension settings."
+  },
+  "aiServiceFailed": {
+    "message": "Failed to reach AI service. Please check your network connection."
+  },
+  "checkBrowserModelDownloadProgress": {
+    "message": "Check Browser Model Download Progress"
+  },
+  "failedToDownloadModel": {
+    "message": "Failed to download model. Please try again."
+  },
+  "browserModelNotSupported": {
+    "message": "The feature is not supported in this browser."
+  },
+  "modelIsDownloading": {
+    "message": "Model is downloading. Please try again later."
+  },
+  "notLoginYet": {
+    "message": "Not login yet. Please login first."
+  }
+}
