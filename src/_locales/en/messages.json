@@ -34,6 +34,9 @@
   "ignoreVideoLessThan5Minutes": {
     "message": "Ignore videos less than 5 minutes"
   },
+  "ignoreVideoMoreThan30Minutes": {
+    "message": "Ignore videos more than 30 minutes"
+  },
   "aiModel": {
     "message": "AI Model"
   },

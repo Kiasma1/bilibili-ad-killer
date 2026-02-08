@@ -65,6 +65,7 @@ window.addEventListener('message', (event) => {
       aiModel: receivedConfig.aiModel,
       autoSkip: receivedConfig.autoSkip,
       ignoreVideoLessThan5Minutes: receivedConfig.ignoreVideoLessThan5Minutes,
+      ignoreVideoMoreThan30Minutes: receivedConfig.ignoreVideoMoreThan30Minutes,
       usingBrowserAIModel: receivedConfig.usingBrowserAIModel
     });
 
@@ -204,14 +205,16 @@ async function processVideoSubtitles(response: any, videoId: string): Promise<vo
             return;
           }
 
-          if (config?.ignoreVideoLessThan5Minutes) {
-            // @ts-ignore
-            const videoDuration = window.__INITIAL_STATE__.videoData.duration
-            console.log('📺 ✔️ Video duration', videoDuration)
-            if (videoDuration !== null && videoDuration <= 60 * 5) {
-              console.log(`📺 ✔️ Ignoring video processing: video duration (${videoDuration.toFixed(2)}s) is less than 5 minutes`);
-              return;
-            }
+          // @ts-ignore
+          const videoDuration = window.__INITIAL_STATE__.videoData.duration
+          console.log('📺 ✔️ Video duration', videoDuration)
+          if (config?.ignoreVideoLessThan5Minutes && videoDuration !== null && videoDuration <= 60 * 5) {
+            console.log(`📺 ✔️ Ignoring video processing: video duration (${videoDuration.toFixed(2)}s) is less than 5 minutes`);
+            return;
+          }
+          if (config?.ignoreVideoMoreThan30Minutes && videoDuration !== null && videoDuration > 60 * 30) {
+            console.log(`📺 ✔️ Ignoring video processing: video duration (${videoDuration.toFixed(2)}s) is more than 30 minutes`);
+            return;
           }
           
           if (!videoId) {

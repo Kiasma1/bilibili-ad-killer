@@ -28,6 +28,9 @@
   "ignoreVideoLessThan5Minutes": {
     "message": "忽略小于5分钟的视频"
   },
+  "ignoreVideoMoreThan30Minutes": {
+    "message": "忽略超过30分钟的视频"
+  },
   "modelDownloadProgress": {
     "message": "模型下载进度"
   },

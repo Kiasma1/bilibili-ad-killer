@@ -3,6 +3,7 @@ const DEFAULT_CONFIG = {
   aiModel: 'gemini-2.5-flash',
   autoSkip: true,
   ignoreVideoLessThan5Minutes: true,
+  ignoreVideoMoreThan30Minutes: false,
   usingBrowserAIModel: false
 }
 
@@ -33,7 +34,7 @@ injectScript.onload = () => {
 (document.head || document.documentElement).appendChild(injectScript);
 
 (async () => {
-  const result = await chrome.storage.local.get(['apiKey', 'aiModel', 'autoSkip', 'ignoreVideoLessThan5Minutes', 'usingBrowserAIModel']);
+  const result = await chrome.storage.local.get(['apiKey', 'aiModel', 'autoSkip', 'ignoreVideoLessThan5Minutes', 'ignoreVideoMoreThan30Minutes', 'usingBrowserAIModel']);
   const apiKey = result.apiKey || DEFAULT_CONFIG.apiKey;
   const aiModel = result.aiModel || DEFAULT_CONFIG.aiModel;
   const autoSkip = typeof result.autoSkip !== undefined 
@@ -45,8 +46,11 @@ injectScript.onload = () => {
   const ignoreVideoLessThan5Minutes = typeof result.ignoreVideoLessThan5Minutes !== undefined 
     ? result.ignoreVideoLessThan5Minutes 
     : DEFAULT_CONFIG.ignoreVideoLessThan5Minutes;
+  const ignoreVideoMoreThan30Minutes = typeof result.ignoreVideoMoreThan30Minutes !== undefined 
+    ? result.ignoreVideoMoreThan30Minutes 
+    : DEFAULT_CONFIG.ignoreVideoMoreThan30Minutes;
 
-  console.log('📺 ✔️ Content script - Config retrieved:', { apiKey, aiModel, autoSkip, usingBrowserAIModel, ignoreVideoLessThan5Minutes });
+  console.log('📺 ✔️ Content script - Config retrieved:', { apiKey, aiModel, autoSkip, usingBrowserAIModel, ignoreVideoLessThan5Minutes, ignoreVideoMoreThan30Minutes });
 
   const sendConfig = () => {
     console.log('📺 ✔️ Sending config via postMessage');
@@ -57,6 +61,7 @@ injectScript.onload = () => {
         aiModel,
         autoSkip,
         ignoreVideoLessThan5Minutes,
+        ignoreVideoMoreThan30Minutes,
         usingBrowserAIModel
       },
       i18n: {

@@ -18,6 +18,7 @@ const App: React.FC = () => {
   const { t } = useI18n();
   const [autoSkip, setAutoSkip] = useState<boolean>(DEFAULT_CONFIG.autoSkip);
   const [ignoreVideoLessThan5Minutes, setignoreVideoLessThan5Minutes] = useState<boolean>(DEFAULT_CONFIG.ignoreVideoLessThan5Minutes);
+  const [ignoreVideoMoreThan30Minutes, setIgnoreVideoMoreThan30Minutes] = useState<boolean>(DEFAULT_CONFIG.ignoreVideoMoreThan30Minutes);
 
   const [browserModelReachable, setBrowserModelReachable] = useState<boolean>(false);
   const [browserModelDownloadProgress, updateBrowserModelDownloadProgress] = useState<number>(0);
@@ -98,8 +99,8 @@ const App: React.FC = () => {
   
   useEffect(() => {
     const loadSettings = async () => {
-      const result = await chrome.storage.local.get(['autoSkip', 'usingBrowserAIModel', 'ignoreVideoLessThan5Minutes']);
-      console.log("📺 ✔️ Loading settings:", result.autoSkip, result.usingBrowserAIModel, result.ignoreVideoLessThan5Minutes);
+      const result = await chrome.storage.local.get(['autoSkip', 'usingBrowserAIModel', 'ignoreVideoLessThan5Minutes', 'ignoreVideoMoreThan30Minutes']);
+      console.log("📺 ✔️ Loading settings:", result.autoSkip, result.usingBrowserAIModel, result.ignoreVideoLessThan5Minutes, result.ignoreVideoMoreThan30Minutes);
       if (result.autoSkip !== undefined) {
         setAutoSkip(result.autoSkip);
       } else {
@@ -116,6 +117,12 @@ const App: React.FC = () => {
         setignoreVideoLessThan5Minutes(result.ignoreVideoLessThan5Minutes);
       } else {
         await chrome.storage.local.set({ ignoreVideoLessThan5Minutes: DEFAULT_CONFIG.ignoreVideoLessThan5Minutes });
+      }
+
+      if (result.ignoreVideoMoreThan30Minutes !== undefined) {
+        setIgnoreVideoMoreThan30Minutes(result.ignoreVideoMoreThan30Minutes);
+      } else {
+        await chrome.storage.local.set({ ignoreVideoMoreThan30Minutes: DEFAULT_CONFIG.ignoreVideoMoreThan30Minutes });
       }
     };
     
@@ -161,6 +168,12 @@ const App: React.FC = () => {
   const updateignoreVideoLessThan5Minutes = async (value: boolean) => {
     setignoreVideoLessThan5Minutes(value);
     await chrome.storage.local.set({ ignoreVideoLessThan5Minutes: value });
+    showSuccessNotification(t('refreshToApply'));
+  }
+
+  const updateIgnoreVideoMoreThan30Minutes = async (value: boolean) => {
+    setIgnoreVideoMoreThan30Minutes(value);
+    await chrome.storage.local.set({ ignoreVideoMoreThan30Minutes: value });
     showSuccessNotification(t('refreshToApply'));
   }
 
@@ -246,6 +259,18 @@ const App: React.FC = () => {
               }}
               checked={ignoreVideoLessThan5Minutes}
               onChange={(event) => updateignoreVideoLessThan5Minutes(event.currentTarget.checked)}
+            />
+            <Switch
+              label={t('ignoreVideoMoreThan30Minutes')}
+              labelPosition="left"
+              size="sm"
+              styles={{
+                body: { justifyContent: 'space-between' },
+                trackLabel: { width: '100%' },
+                label: { fontSize: '13px' }
+              }}
+              checked={ignoreVideoMoreThan30Minutes}
+              onChange={(event) => updateIgnoreVideoMoreThan30Minutes(event.currentTarget.checked)}
             />
           </Stack>
           <form onSubmit={form.onSubmit(handleSubmit)} onReset={form.onReset}>

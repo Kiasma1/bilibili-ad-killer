@@ -3,6 +3,7 @@ export interface UserConfig {
     aiModel: string, 
     autoSkip: boolean,
     ignoreVideoLessThan5Minutes: boolean,
+    ignoreVideoMoreThan30Minutes: boolean,
     usingBrowserAIModel: boolean
 } 
 
@@ -11,6 +12,7 @@ export const DEFAULT_CONFIG: UserConfig = {
     aiModel: 'gemini-2.5-flash',
     autoSkip: true,
     ignoreVideoLessThan5Minutes: true,
+    ignoreVideoMoreThan30Minutes: true,
     usingBrowserAIModel: false
 }
 
