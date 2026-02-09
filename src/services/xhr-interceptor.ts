@@ -19,7 +19,7 @@ export function installXhrInterceptor(onPlayerApiResponse: OnPlayerApiResponse):
 
     XMLHttpRequest.prototype.open = function (method: string, url: string | URL, ...args: any[]) {
         this._url = url.toString();
-        return originalOpen.call(this, method, url, ...args);
+        return (originalOpen as Function).call(this, method, url, ...args);
     };
 
     XMLHttpRequest.prototype.send = function (...args: any[]) {
