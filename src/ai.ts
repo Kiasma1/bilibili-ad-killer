@@ -1,9 +1,8 @@
 import { GoogleGenAI } from '@google/genai';
+import { AI_TIMEOUT_MS, CONNECTIVITY_TIMEOUT_MS, MessageType } from './constants';
+import { messages, showToast } from './toast';
 import { AdTimeRange } from './types';
-import { AI_TIMEOUT_MS, CONNECTIVITY_TIMEOUT_MS } from './constants';
 import { getVideoIdFromCurrentPage } from './util';
-import { showToast, messages } from './toast';
-import { MessageType } from './constants';
 
 // ============================================================
 // AI ad detection — Gemini and Browser AI integration
@@ -147,7 +146,7 @@ export async function identifyAdTimeRangeByGeminiAI(options: IdentifyAdTimeRange
     if (!geminiClient || !aiModel) {
         console.error('📺 🤖 ❌ AI not initialized yet, cannot identify ads');
         showToast(messages.aiNotInitialized);
-        return null;
+        return undefined;
     }
 
     const finalPrompt = buildAdDetectionPrompt(subStr, videoTitle, videoDescription);
@@ -168,14 +167,14 @@ export async function identifyAdTimeRangeByGeminiAI(options: IdentifyAdTimeRange
         const targetAdTimeRange = JSON.parse(response.text!);
         if (!targetAdTimeRange || !targetAdTimeRange.startTime || !targetAdTimeRange.endTime) {
             console.log('📺 🤖 No ad found');
-            return null;
+            return undefined;
         }
 
         if (targetAdTimeRange.startTime < 0
             || targetAdTimeRange.endTime < 0
             || targetAdTimeRange.startTime >= targetAdTimeRange.endTime) {
             console.log('📺 🤖 Invalid ad time range', targetAdTimeRange);
-            return null;
+            return undefined;
         }
 
         targetAdTimeRange.startTime = parseFloat(targetAdTimeRange.startTime);
@@ -192,6 +191,6 @@ export async function identifyAdTimeRangeByGeminiAI(options: IdentifyAdTimeRange
     } catch (err) {
         console.log('📺 🤖 ❌ Failed to reach AI service, message:', err);
         showToast(messages.aiServiceFailed);
-        return null;
+        return undefined;
     }
 }
