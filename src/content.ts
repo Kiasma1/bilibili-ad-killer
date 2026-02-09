@@ -24,6 +24,7 @@ const DEFAULT_CONFIG = {
   aiModel: 'gemini-2.5-flash',
   autoSkip: true,
   ignoreVideoLessThan5Minutes: true,
+  ignoreVideoMoreThan30Minutes: true,
   usingBrowserAIModel: false,
 };
 

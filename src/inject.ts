@@ -84,6 +84,8 @@ window.addEventListener('message', (event) => {
     }
 });
 
+// ---- Process a video ----
+
 /**
  * 处理单个视频的广告检测流程
  * 检查是否应跳过短视频，然后调用 AI 检测广告并初始化广告标记条

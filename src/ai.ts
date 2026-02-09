@@ -85,7 +85,7 @@ function buildAdDetectionPrompt(
 export async function identifyAdTimeRangeByBrowserAI(options: IdentifyAdTimeRangeOptions): Promise<AdTimeRange | undefined> {
     if (!window.LanguageModel || !window.LanguageModel.create) {
         console.error('📺 🤖 ❌ Browser AI not initialized yet, cannot identify ads');
-        return null;
+        return undefined;
     }
 
     const { subStr, videoTitle, videoDescription } = options;

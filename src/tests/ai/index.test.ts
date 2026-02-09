@@ -33,6 +33,8 @@ describe('AI 广告时间段识别测试 — 使用真实字幕文件验证 Gemi
 
 
             expect(timeRange).not.toBeNull();
+            expect(timeRange).toBeDefined();
+            if (!timeRange) return;
             expect(timeRange).toHaveProperty('startTime')
             expect(timeRange).toHaveProperty('endTime')
             expect(typeof timeRange.startTime).toBe('number')

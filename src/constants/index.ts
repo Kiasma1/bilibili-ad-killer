@@ -44,7 +44,7 @@ export const WARNING_DISPLAY_MS = 3000;
 /** 广告开始前提前显示跳过动画的时间（秒） */
 export const ANIMATION_LEAD_TIME_S = 3;
 
-/** 短于此时长的视频将被忽略（秒，默认 5 分钟） */
+/** 短于此时长的视频将被忽略（秒，即 5 分钟） */
 export const MIN_VIDEO_DURATION_S = 5 * 60;
 
 /** Gemini AI 广告检测请求的超时时间（毫秒） */

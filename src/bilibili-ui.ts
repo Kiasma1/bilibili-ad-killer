@@ -24,6 +24,8 @@ import {
 /** 当前显示的公共动画元素（思考中/警告等） */
 let commonAnimationElement: HTMLElement | null = null;
 
+// ---- Animation style injection ----
+
 /**
  * 将所有动画的 CSS 样式注入到页面 <head> 中
  * 每种动画只注入一次，通过 style 元素的 id 去重
@@ -40,6 +42,8 @@ export function injectAnimationStyles(): void {
         }
     }
 }
+
+// ---- Animation management ----
 
 /**
  * 在播放器上添加指定的动画效果（如思考中、警告等）
@@ -75,6 +79,8 @@ export function removeAnimation(): void {
     }
 }
 
+// ---- Ad bar position calculation ----
+
 /**
  * 计算广告标记条在进度条上的位置和宽度
  * @param adStartSeconds - 广告开始时间（秒）
@@ -104,6 +110,8 @@ function calculateAdBarPosition(
 
     return { left, width };
 }
+
+// ---- Ad bar creation and update ----
 
 /**
  * 更新所有已存在的广告标记条的位置和宽度（窗口 resize 时调用）
@@ -186,6 +194,8 @@ function createAdBar(adStartSeconds: number, adEndSeconds: number): void {
     }
 }
 
+// ---- Resize handling ----
+
 /**
  * 设置广告标记条的 resize 响应处理器
  * 监听窗口 resize 和进度条/播放器容器的尺寸变化，自动更新标记条位置
@@ -223,6 +233,8 @@ function setupAdBarResizeHandlers(adStartSeconds: number, adEndSeconds: number):
         cleanupManager.trackResizeObserver(containerObserver);
     }
 }
+
+// ---- Auto-skip ----
 
 /**
  * 设置自动跳过广告功能
@@ -292,6 +304,8 @@ function setupAutoSkip(video: HTMLVideoElement, adStartSeconds: number, adEndSec
     console.log(`📺 ✔️ Auto-skip enabled: ${adStartSeconds}s - ${adEndSeconds}s`);
 }
 
+// ---- DOM element cleanup ----
+
 /** 清理所有广告相关的 DOM 元素（标记条、动画等） */
 export function cleanupDomElements(): void {
     // Remove all ad bars
@@ -306,6 +320,8 @@ export function cleanupDomElements(): void {
     // Remove skip animation elements
     document.querySelectorAll(`.${skipAnimation.className}`).forEach(anim => anim.remove());
 }
+
+// ---- Main entry point ----
 
 /**
  * 初始化广告标记条（主入口）
