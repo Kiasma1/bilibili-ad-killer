@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "vite build --watch --mode development",
     "build": "vite build",
-    "clean": "rimraf dist",
+    "clean": "rm -rf dist",
     "test:ai": "vitest run src/tests/ai/index.test.ts",
     "test:ai:watch": "vitest watch src/tests/ai/index.ts",
     "test:dom": "vitest run src/tests/dom-dependencies.test.ts",
@@ -26,8 +26,6 @@
     "@vitejs/plugin-react": "^4.2.1",
     "@vitest/ui": "^4.0.17",
     "puppeteer": "^24.35.0",
-    "rimraf": "^5.0.5",
-    "tsx": "^4.21.0",
     "typescript": "^5.3.3",
     "vite": "^5.0.10",
     "vitest": "^4.0.17"
