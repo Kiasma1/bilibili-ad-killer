@@ -6,7 +6,7 @@ import { useForm } from '@mantine/form';
 import { Alert } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { useI18n } from '../hooks/useI18n';
-import { DEFAULT_CONFIG } from './config';
+import { DEFAULT_CONFIG } from '../config';
 import './App.css';
 
 interface ConfigForm {

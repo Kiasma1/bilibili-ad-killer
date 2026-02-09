@@ -1,142 +1,126 @@
-const DEFAULT_CONFIG = {
-  apiKey: '',
-  aiModel: 'gemini-2.5-flash',
-  autoSkip: true,
-  ignoreVideoLessThan5Minutes: true,
-  ignoreVideoMoreThan30Minutes: false,
-  usingBrowserAIModel: false
-}
+import { MessageType, CACHE_TTL_MS, STORAGE_KEYS } from './constants';
+import { DEFAULT_CONFIG } from './config';
 
 console.log('📺 ✔️ Content script loaded');
-const AD_TIME_RANGE_CACHE = 'AD_TIME_RANGE_CACHE';
 
-// Inject Toastify CSS first
+// ---- Inject scripts into page ----
+
 const cssLink = document.createElement('link');
 cssLink.rel = 'stylesheet';
 cssLink.href = chrome.runtime.getURL('lib/toastify.min.css');
 (document.head || document.documentElement).appendChild(cssLink);
 
-// Inject inject script, then Toastify JS
 const injectScript = document.createElement('script');
 injectScript.src = chrome.runtime.getURL('inject.js');
 injectScript.onload = () => {
   console.log('📺 ✔️ Inject script loaded successfully');
   injectScript.remove();
-  // Now inject Toastify
+
   const toastifyScript = document.createElement('script');
   toastifyScript.src = chrome.runtime.getURL('lib/toastify.min.js');
   toastifyScript.onload = function() {
     console.log('📺 ✔️ Toastify loaded successfully');
-    window.postMessage({ type: 'TOASTIFY_LOADED' }, '*');
+    window.postMessage({ type: MessageType.TOASTIFY_LOADED }, '*');
   };
   (document.head || document.documentElement).appendChild(toastifyScript);
 };
 (document.head || document.documentElement).appendChild(injectScript);
 
+// ---- Config & cache communication ----
+
 (async () => {
-  const result = await chrome.storage.local.get(['apiKey', 'aiModel', 'autoSkip', 'ignoreVideoLessThan5Minutes', 'ignoreVideoMoreThan30Minutes', 'usingBrowserAIModel']);
+  const result = await chrome.storage.local.get([
+    'apiKey', 'aiModel', 'autoSkip', 'ignoreVideoLessThan5Minutes', 'ignoreVideoMoreThan30Minutes', 'usingBrowserAIModel'
+  ]);
+
   const apiKey = result.apiKey || DEFAULT_CONFIG.apiKey;
   const aiModel = result.aiModel || DEFAULT_CONFIG.aiModel;
-  const autoSkip = typeof result.autoSkip !== undefined 
-    ? result.autoSkip 
-    : DEFAULT_CONFIG.autoSkip;
-  const usingBrowserAIModel = typeof result.usingBrowserAIModel !== undefined 
-    ? result.usingBrowserAIModel 
+  const autoSkip = result.autoSkip !== undefined ? result.autoSkip : DEFAULT_CONFIG.autoSkip;
+  const usingBrowserAIModel = result.usingBrowserAIModel !== undefined
+    ? result.usingBrowserAIModel
     : DEFAULT_CONFIG.usingBrowserAIModel;
-  const ignoreVideoLessThan5Minutes = typeof result.ignoreVideoLessThan5Minutes !== undefined 
-    ? result.ignoreVideoLessThan5Minutes 
+  const ignoreVideoLessThan5Minutes = result.ignoreVideoLessThan5Minutes !== undefined
+    ? result.ignoreVideoLessThan5Minutes
     : DEFAULT_CONFIG.ignoreVideoLessThan5Minutes;
-  const ignoreVideoMoreThan30Minutes = typeof result.ignoreVideoMoreThan30Minutes !== undefined 
-    ? result.ignoreVideoMoreThan30Minutes 
+  const ignoreVideoMoreThan30Minutes = result.ignoreVideoMoreThan30Minutes !== undefined
+    ? result.ignoreVideoMoreThan30Minutes
     : DEFAULT_CONFIG.ignoreVideoMoreThan30Minutes;
 
-  console.log('📺 ✔️ Content script - Config retrieved:', { apiKey, aiModel, autoSkip, usingBrowserAIModel, ignoreVideoLessThan5Minutes, ignoreVideoMoreThan30Minutes });
+  console.log('📺 ✔️ Content script - Config retrieved:', {
+    apiKey, aiModel, autoSkip, usingBrowserAIModel, ignoreVideoLessThan5Minutes, ignoreVideoMoreThan30Minutes
+  });
 
   const sendConfig = () => {
     console.log('📺 ✔️ Sending config via postMessage');
     window.postMessage({
-      type: 'BILIBILI_AD_SKIP_CONFIG',
-      config: {
-        apiKey,
-        aiModel,
-        autoSkip,
-        ignoreVideoLessThan5Minutes,
-        ignoreVideoMoreThan30Minutes,
-        usingBrowserAIModel
-      },
+      type: MessageType.CONFIG,
+      config: { apiKey, aiModel, autoSkip, ignoreVideoLessThan5Minutes, ignoreVideoMoreThan30Minutes, usingBrowserAIModel },
       i18n: {
         noApiKeyProvided: chrome.i18n.getMessage('noApiKeyProvided'),
         aiNotInitialized: chrome.i18n.getMessage('aiNotInitialized'),
         aiServiceFailed: chrome.i18n.getMessage('aiServiceFailed'),
-        notLoginYet: chrome.i18n.getMessage('notLoginYet')
-      }
+        notLoginYet: chrome.i18n.getMessage('notLoginYet'),
+      },
     }, '*');
   };
 
   const sendAdTimeRangeCache = async () => {
-    const adTimeRangeCache = (await chrome.storage.local.get(AD_TIME_RANGE_CACHE))[AD_TIME_RANGE_CACHE]
-    window.postMessage({
-      type: 'SEND_VIDEO_AD_TIMERANGE',
-      data: adTimeRangeCache 
-    }, '*');
-  }
+    const cache = (await chrome.storage.local.get(STORAGE_KEYS.AD_TIME_RANGE_CACHE))[STORAGE_KEYS.AD_TIME_RANGE_CACHE];
+    window.postMessage({ type: MessageType.SEND_CACHE, data: cache }, '*');
+  };
 
   const cleanOldCache = async () => {
-    const adTimeRangeCache = (await chrome.storage.local.get(AD_TIME_RANGE_CACHE))[AD_TIME_RANGE_CACHE] || {};
-    const threeDaysAgo = +new Date() - (3 * 24 * 60 * 60 * 1000); // 3 days in milliseconds
-    
-    const cleanedCache = Object.entries(adTimeRangeCache).reduce((acc, [videoId, cacheEntry]: [string, any]) => {
-      // Keep entries that were created less than 3 days ago
-      if (cacheEntry.createAt && cacheEntry.createAt > threeDaysAgo) {
-        acc[videoId] = cacheEntry;
+    const cache = (await chrome.storage.local.get(STORAGE_KEYS.AD_TIME_RANGE_CACHE))[STORAGE_KEYS.AD_TIME_RANGE_CACHE] || {};
+    const cutoff = Date.now() - CACHE_TTL_MS;
+
+    const cleaned = Object.entries(cache).reduce((acc, [videoId, entry]: [string, any]) => {
+      if (entry.createAt && entry.createAt > cutoff) {
+        acc[videoId] = entry;
       }
       return acc;
     }, {} as Record<string, any>);
 
-    await chrome.storage.local.set({
-      [AD_TIME_RANGE_CACHE]: cleanedCache
-    });
+    await chrome.storage.local.set({ [STORAGE_KEYS.AD_TIME_RANGE_CACHE]: cleaned });
 
-    const removedCount = Object.keys(adTimeRangeCache).length - Object.keys(cleanedCache).length;
+    const removedCount = Object.keys(cache).length - Object.keys(cleaned).length;
     if (removedCount > 0) {
       console.log(`📺 ✔️ Cleaned ${removedCount} old cache entries (older than 3 days)`);
     }
-  }
+  };
 
   window.addEventListener('message', async (event) => {
-    if (event.source === window && event.data.type === 'BILIBILI_AD_SKIP_READY') {
-      console.log('📺 💬 Received raw BILIBILI_AD_SKIP_READY event', event)
+    if (event.source !== window) return;
+
+    if (event.data.type === MessageType.READY) {
       console.log('📺 ✔️ Inject script ready, sending config');
       sendConfig();
     }
 
-    if (event.source === window && event.data.type === "REQUEST_VIDEO_AD_TIMERANGE") {
-      console.log('📺 💬 Received raw REQUEST_VIDEO_AD_TIMERANGE event', event)
+    if (event.data.type === MessageType.REQUEST_CACHE) {
       console.log('📺 ✔️ Received request for AD time range cache');
-      await sendAdTimeRangeCache()
+      await sendAdTimeRangeCache();
     }
 
-    if (event.source === window && event.data.type === 'SAVE_VIDEO_AD_TIMERANGE') {
-      console.log('📺 💬 Received raw SAVE_VIDEO_AD_TIMERANGE event', event)
-      const adTimeRangeCache = (await chrome.storage.local.get(AD_TIME_RANGE_CACHE))[AD_TIME_RANGE_CACHE] || {};
+    if (event.data.type === MessageType.SAVE_CACHE) {
       const eventData = event.data.data;
       if (!eventData.videoId || !eventData.startTime || !eventData.endTime) {
-        console.log('📺 ❌ No ad time range received')
+        console.log('📺 ❌ No ad time range received');
+        return;
       }
 
+      const cache = (await chrome.storage.local.get(STORAGE_KEYS.AD_TIME_RANGE_CACHE))[STORAGE_KEYS.AD_TIME_RANGE_CACHE] || {};
       await chrome.storage.local.set({
-        [AD_TIME_RANGE_CACHE]: {
-          ...adTimeRangeCache,
+        [STORAGE_KEYS.AD_TIME_RANGE_CACHE]: {
+          ...cache,
           [eventData.videoId]: {
             startTime: eventData.startTime,
             endTime: eventData.endTime,
-            createAt: +new Date()
-          }
-        }
-      })
+            createAt: Date.now(),
+          },
+        },
+      });
 
-      await cleanOldCache()
+      await cleanOldCache();
     }
   });
 })();
-

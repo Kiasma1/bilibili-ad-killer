@@ -1,20 +1,14 @@
-export type subtitle = {
-    from: number,
-    to: number,
-    content: string,
-}
+import { Subtitle, SubtitleString } from './types';
 
-type SubtitleString = `[${string}-${string}]:${string}`;
-
-export function convertSubtitleObjToStr(subtitles: subtitle[]): string {
-    return subtitles.map((sub: subtitle) => {
-        const { from, to, content } = sub
+export function convertSubtitleObjToStr(subtitles: Subtitle[]): string {
+    return subtitles.map((sub: Subtitle) => {
+        const { from, to, content } = sub;
         const subtitleStr: SubtitleString = `[${from}-${to}]:${content}`;
         return subtitleStr;
-    }).join(';')
+    }).join(';');
 }
 
-export function getVideoIdFromCurrentPage() {
+export function getVideoIdFromCurrentPage(): string | null {
     const match = window.location.pathname.match(/\/video\/(BV\w+)/);
     return match ? match[1] : null;
 }
