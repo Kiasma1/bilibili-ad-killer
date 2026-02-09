@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import puppeteer, { Browser, Page } from 'puppeteer';
-import { 
-  progressWrapClassSelector, 
-  playerContainerSelector, 
-  playWrapId 
-} from '../bilibili-ui';
+import { SELECTORS } from '../constants';
+
+const progressWrapClassSelector = SELECTORS.PROGRESS_BAR;
+const playerContainerSelector = SELECTORS.PLAYER_CONTAINER;
+const playWrapId = SELECTORS.PLAYER_WRAP_ID;
 
 describe('DOM Dependencies Contract Test', () => {
   let browser: Browser;

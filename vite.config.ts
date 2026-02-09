@@ -1,6 +1,6 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'path';
-import { copyFileSync, mkdirSync, existsSync, cpSync, watch, readFileSync, writeFileSync } from 'fs';
+import { copyFileSync, mkdirSync, existsSync, cpSync, watch, readFileSync, writeFileSync, readdirSync, unlinkSync } from 'fs';
 import react from '@vitejs/plugin-react';
 
 export default defineConfig({
@@ -25,16 +25,77 @@ export default defineConfig({
   plugins: [
     react(),
     {
-      name: 'wrap-inject-in-iife',
+      name: 'inline-chunks-into-inject',
       closeBundle() {
-        // Wrap inject.js in IIFE to prevent variable name conflicts
-        const injectPath = resolve(__dirname, 'dist/inject.js');
-        if (existsSync(injectPath)) {
-          const content = readFileSync(injectPath, 'utf-8');
-          const wrapped = `(function() {\n${content}\n})();`;
-          writeFileSync(injectPath, wrapped, 'utf-8');
-          console.log('✅ Wrapped inject.js in IIFE to prevent variable conflicts');
+        // inject.js is loaded into the page via <script> tag (not ES module),
+        // so it cannot use import statements. This plugin inlines any chunk
+        // imports directly into inject.js, then wraps it in an IIFE.
+        const distDir = resolve(__dirname, 'dist');
+        const injectPath = resolve(distDir, 'inject.js');
+        if (!existsSync(injectPath)) return;
+
+        let injectContent = readFileSync(injectPath, 'utf-8');
+
+        // Find all import statements like: import{x as y}from"./chunk.js";
+        const importRegex = /import\{([^}]*)\}from"\.\/([^"]+)";/g;
+        const chunksToInline = new Set<string>();
+        let match;
+
+        while ((match = importRegex.exec(injectContent)) !== null) {
+          chunksToInline.add(match[2]);
         }
+
+        // For each chunk, read its content and inline the exports
+        for (const chunkFile of chunksToInline) {
+          const chunkPath = resolve(distDir, chunkFile);
+          if (!existsSync(chunkPath)) continue;
+
+          let chunkContent = readFileSync(chunkPath, 'utf-8');
+
+          // Extract export mappings: export{x as A, y as B}
+          const exportMatch = chunkContent.match(/export\{([^}]+)\}/);
+          if (!exportMatch) continue;
+
+          // Parse export pairs: "localName as exportedName"
+          const exportPairs = exportMatch[1].split(',').map(pair => {
+            const parts = pair.trim().split(/\s+as\s+/);
+            return { local: parts[0], exported: parts[1] || parts[0] };
+          });
+
+          // Remove the export statement from chunk content
+          const chunkCode = chunkContent.replace(/export\{[^}]+\};?\s*$/, '').trim();
+
+          // Build the import pattern for this chunk
+          const importPattern = new RegExp(
+            `import\\{([^}]*)\\}from"\\.\\/${chunkFile.replace('.', '\\.')}";`
+          );
+          const importMatch = injectContent.match(importPattern);
+          if (!importMatch) continue;
+
+          // Parse import bindings: "exportedName as localAlias"
+          const importBindings = importMatch[1].split(',').map(pair => {
+            const parts = pair.trim().split(/\s+as\s+/);
+            return { imported: parts[0], local: parts[1] || parts[0] };
+          });
+
+          // Build variable declarations mapping imported names to local chunk variables
+          const varDecls = importBindings.map(binding => {
+            const exportPair = exportPairs.find(ep => ep.exported === binding.imported);
+            if (!exportPair) return '';
+            if (exportPair.local === binding.local) return '';
+            return `var ${binding.local}=${exportPair.local};`;
+          }).filter(Boolean).join('');
+
+          // Replace the import statement with inlined chunk code + variable mappings
+          injectContent = injectContent.replace(importPattern, chunkCode + ';' + varDecls);
+
+          console.log(`✅ Inlined ${chunkFile} into inject.js`);
+        }
+
+        // Wrap in IIFE
+        const wrapped = `(function() {\n${injectContent}\n})();`;
+        writeFileSync(injectPath, wrapped, 'utf-8');
+        console.log('✅ Wrapped inject.js in IIFE');
       }
     },
     {
