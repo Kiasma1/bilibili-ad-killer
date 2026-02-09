@@ -3,7 +3,7 @@
 // ============================================================
 
 /** 单条字幕条目，来自 B 站字幕 API */
-export interface Subtitle {
+export type BilibiliSubtitle = {
     /** 字幕开始时间（秒） */
     from: number;
     /** 字幕结束时间（秒） */
@@ -16,7 +16,7 @@ export interface Subtitle {
 export type SubtitleString = `[${string}-${string}]:${string}`;
 
 /** 检测到的广告片段的时间范围 */
-export interface AdTimeRange {
+export type AdTimeRange = {
     /** 广告开始时间（秒） */
     startTime: number;
     /** 广告结束时间（秒） */
@@ -24,18 +24,16 @@ export interface AdTimeRange {
 }
 
 /** 带创建时间戳的广告时间范围缓存条目 */
-export interface AdCacheEntry extends AdTimeRange {
+export type AdCacheEntry = AdTimeRange & {
     /** 缓存创建时间（Unix 时间戳，毫秒） */
     createAt: number;
 }
 
 /** 视频 ID 到广告时间范围缓存的映射表 */
-export interface AdTimeRangeCache {
-    [videoId: string]: AdCacheEntry;
-}
+export type AdTimeRangeCache = Record<string, AdCacheEntry>;
 
 /** 用户可配置的扩展设置 */
-export interface UserConfig {
+export type UserConfig = {
     /** Gemini API 密钥 */
     apiKey: string;
     /** 使用的 AI 模型名称 */
@@ -51,7 +49,7 @@ export interface UserConfig {
 }
 
 /** B 站播放器 API 响应结构（部分字段） */
-export interface BilibiliPlayerResponse {
+export type BilibiliPlayerResponse = {
     data: {
         /** 视频的 BV 号 */
         bvid: string;
@@ -74,7 +72,7 @@ export interface BilibiliPlayerResponse {
 }
 
 /** B 站字幕文件的响应结构 */
-export interface SubtitleFileResponse {
+export type SubtitleFileResponse = {
     /** 字幕条目数组 */
-    body: Subtitle[];
+    body: BilibiliSubtitle[];
 }

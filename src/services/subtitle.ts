@@ -1,11 +1,11 @@
 import { GoogleGenAI } from '@google/genai';
-import { AdTimeRange, AdTimeRangeCache, BilibiliPlayerResponse, Subtitle, SubtitleFileResponse } from '../types';
-import { MIN_VIDEO_DURATION_S, WARNING_DISPLAY_MS } from '../constants';
-import { convertSubtitleObjToStr } from '../util';
-import { identifyAdTimeRangeByGeminiAI, checkGeminiConnectivity } from '../ai';
-import { showToast, messages } from '../toast';
+import { checkGeminiConnectivity, identifyAdTimeRangeByGeminiAI } from '../ai';
 import { addAnimation, removeAnimation } from '../bilibili-ui';
+import { MIN_VIDEO_DURATION_S, WARNING_DISPLAY_MS } from '../constants';
 import { warningAnimation } from '../style';
+import { messages, showToast } from '../toast';
+import { AdTimeRange, AdTimeRangeCache, BilibiliPlayerResponse, BilibiliSubtitle, SubtitleFileResponse } from '../types';
+import { convertSubtitleObjToStr } from '../util';
 
 // ============================================================
 // Subtitle service — fetches subtitles and detects ads via AI
@@ -84,7 +84,7 @@ export async function detectAdFromVideo(
 
     // Fetch and convert subtitles
     const jsonRes: SubtitleFileResponse = await (await fetch(fullUrl)).json();
-    const subtitles: Subtitle[] = jsonRes.body;
+    const subtitles: BilibiliSubtitle[] = jsonRes.body;
     const subtitleStr = convertSubtitleObjToStr(subtitles);
 
     // Verify AI client is ready
