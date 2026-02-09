@@ -6,6 +6,7 @@ import App from './App';
 import '@mantine/core/styles.css';
 import '@mantine/notifications/styles.css';
 
+/** Popup 页面的 React 入口 — 挂载根组件到 DOM */
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
 root.render(
   <React.StrictMode>

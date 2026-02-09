@@ -4,14 +4,21 @@ import { CSS_CLASSES } from './constants';
 // Animation style generation — config-driven, no duplication
 // ============================================================
 
+/** 动画配置接口，定义一种边框动画的所有参数 */
 export interface AnimationConfig {
+    /** 动画名称（用于生成 CSS keyframe 名） */
     name: string;
+    /** 对应的 CSS 类名 */
     className: string;
+    /** 渐变色列表（conic-gradient 的色值） */
     colors: string[];
+    /** 动画持续时间（CSS 时间值，如 '3s'） */
     duration: string;
+    /** 模糊层的不透明度 */
     blurOpacity: number;
 }
 
+/** 跳过广告时的红绿蓝渐变动画配置 */
 export const skipAnimation: AnimationConfig = {
     name: 'bilibili-skip',
     className: CSS_CLASSES.SKIP_ANIMATION,
@@ -20,6 +27,7 @@ export const skipAnimation: AnimationConfig = {
     blurOpacity: 1,
 };
 
+/** AI 思考中的柔和紫蓝渐变动画配置 */
 export const thinkingAnimation: AnimationConfig = {
     name: 'bilibili-thinking',
     className: CSS_CLASSES.THINKING_ANIMATION,
@@ -28,6 +36,7 @@ export const thinkingAnimation: AnimationConfig = {
     blurOpacity: 0.8,
 };
 
+/** 字幕不可用时的橙红警告动画配置 */
 export const warningAnimation: AnimationConfig = {
     name: 'bilibili-warning',
     className: CSS_CLASSES.WARNING_ANIMATION,
@@ -36,8 +45,15 @@ export const warningAnimation: AnimationConfig = {
     blurOpacity: 0.8,
 };
 
+/** 所有动画配置的集合，用于批量注入样式 */
 export const ALL_ANIMATIONS = [skipAnimation, thinkingAnimation, warningAnimation];
 
+/**
+ * 根据动画配置生成完整的 CSS 样式字符串
+ * 包含 @property 声明、元素样式、伪元素渐变和 keyframe 动画
+ * @param config - 动画配置对象
+ * @returns 完整的 CSS 样式文本
+ */
 function generateAnimationStyle(config: AnimationConfig): string {
     const angleProp = `--${config.name}-angle`;
     const keyframeName = `${config.name}-spin`;
@@ -95,10 +111,21 @@ function generateAnimationStyle(config: AnimationConfig): string {
     `;
 }
 
+/**
+ * 获取指定动画的 CSS 样式内容（generateAnimationStyle 的公开包装）
+ * @param config - 动画配置对象
+ * @returns CSS 样式文本
+ */
 export function getAnimationStyleContent(config: AnimationConfig): string {
     return generateAnimationStyle(config);
 }
 
+/**
+ * 生成广告标记条的内联 CSS 样式
+ * @param left - 距离进度条左侧的偏移量（像素）
+ * @param width - 标记条宽度（像素）
+ * @returns 内联 CSS 样式字符串
+ */
 export function initializeAdBarStyle(left: number, width: number): string {
     return `
         position: absolute;

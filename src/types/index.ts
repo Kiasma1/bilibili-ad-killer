@@ -2,59 +2,79 @@
 // Shared type definitions for the entire project
 // ============================================================
 
-/** A single subtitle entry from Bilibili's subtitle API */
+/** 单条字幕条目，来自 B 站字幕 API */
 export interface Subtitle {
+    /** 字幕开始时间（秒） */
     from: number;
+    /** 字幕结束时间（秒） */
     to: number;
+    /** 字幕文本内容 */
     content: string;
 }
 
-/** Formatted subtitle string: [startTime-endTime]:content */
+/** 格式化后的字幕字符串，格式为 [开始时间-结束时间]:内容 */
 export type SubtitleString = `[${string}-${string}]:${string}`;
 
-/** Time range of a detected ad segment */
+/** 检测到的广告片段的时间范围 */
 export interface AdTimeRange {
+    /** 广告开始时间（秒） */
     startTime: number;
+    /** 广告结束时间（秒） */
     endTime: number;
 }
 
-/** Cached ad time range with creation timestamp */
+/** 带创建时间戳的广告时间范围缓存条目 */
 export interface AdCacheEntry extends AdTimeRange {
+    /** 缓存创建时间（Unix 时间戳，毫秒） */
     createAt: number;
 }
 
-/** Map of video IDs to their cached ad time ranges */
+/** 视频 ID 到广告时间范围缓存的映射表 */
 export interface AdTimeRangeCache {
     [videoId: string]: AdCacheEntry;
 }
 
-/** User-configurable settings for the extension */
+/** 用户可配置的扩展设置 */
 export interface UserConfig {
+    /** Gemini API 密钥 */
     apiKey: string;
+    /** 使用的 AI 模型名称 */
     aiModel: string;
+    /** 是否自动跳过广告 */
     autoSkip: boolean;
+    /** 是否忽略时长小于 5 分钟的视频 */
     ignoreVideoLessThan5Minutes: boolean;
+    /** 是否忽略时长大于 30 分钟的视频 */
     ignoreVideoMoreThan30Minutes: boolean;
+    /** 是否使用浏览器内置 AI 模型 */
     usingBrowserAIModel: boolean;
 }
 
-/** Bilibili player API response structure (partial) */
+/** B 站播放器 API 响应结构（部分字段） */
 export interface BilibiliPlayerResponse {
     data: {
+        /** 视频的 BV 号 */
         bvid: string;
+        /** 视频标题 */
         name?: string;
+        /** 字幕信息 */
         subtitle?: {
             subtitles: Array<{
+                /** 字幕语言代码，如 "zh-CN" */
                 lan: string;
+                /** 字幕语言描述，如 "中文（自动生成）" */
                 lan_doc: string;
+                /** 字幕类型 */
                 type: number;
+                /** 字幕文件下载地址 */
                 subtitle_url: string;
             }>;
         };
     };
 }
 
-/** Bilibili subtitle file response */
+/** B 站字幕文件的响应结构 */
 export interface SubtitleFileResponse {
+    /** 字幕条目数组 */
     body: Subtitle[];
 }

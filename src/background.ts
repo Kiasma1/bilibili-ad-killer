@@ -1,7 +1,7 @@
 // Background service worker
 console.log('[Bilibili Subtitle Monitor] Background service worker initialized');
 
-// Listen for installation
+/** 监听扩展安装/更新事件 */
 chrome.runtime.onInstalled.addListener((details) => {
   if (details.reason === 'install') {
     console.log('[Bilibili Ad Killer] Extension installed');
@@ -10,7 +10,7 @@ chrome.runtime.onInstalled.addListener((details) => {
   }
 });
 
-// Optional: Listen for messages from content scripts
+/** 监听来自 content script 的消息 */
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log('[Bilibili Ad Killer] Message received:', message);
   sendResponse({ received: true });

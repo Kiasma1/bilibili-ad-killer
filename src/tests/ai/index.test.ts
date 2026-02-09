@@ -16,9 +16,9 @@ const files = readdirSync(subtitleFilesDir)
 const apiKey = process.env.GOOGLE_GEMINI_API_KEY
 const geminiClient = new GoogleGenAI({ apiKey });
 
-describe('AI Ad Time Range Identification', async () => {
+describe('AI 广告时间段识别测试 — 使用真实字幕文件验证 Gemini AI 检测结果', async () => {
     for (const fileName of files) {
-        it(`should return valid AdTimeRange for ${fileName}`, async () => {
+        it(`${fileName} 应返回有效的广告时间范围`, async () => {
             const filePath = join(subtitleFilesDir, fileName)
             const fileContent = readFileSync(filePath, {
                 encoding: "utf-8"

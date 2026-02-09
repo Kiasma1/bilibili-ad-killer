@@ -78,6 +78,9 @@ injectScript.onload = () => {
     apiKey, aiModel, autoSkip, usingBrowserAIModel, ignoreVideoLessThan5Minutes, ignoreVideoMoreThan30Minutes
   });
 
+  /**
+   * 将用户配置和 i18n 文本通过 postMessage 发送给 inject script
+   */
   const sendConfig = () => {
     console.log('📺 ✔️ Sending config via postMessage');
     window.postMessage({
@@ -92,11 +95,17 @@ injectScript.onload = () => {
     }, '*');
   };
 
+  /**
+   * 从 Chrome 本地存储读取广告时间范围缓存，并发送给 inject script
+   */
   const sendAdTimeRangeCache = async () => {
     const cache = (await chrome.storage.local.get(AD_TIME_RANGE_CACHE_KEY))[AD_TIME_RANGE_CACHE_KEY];
     window.postMessage({ type: MessageType.SEND_CACHE, data: cache }, '*');
   };
 
+  /**
+   * 清理过期的广告缓存条目（超过 3 天的会被删除）
+   */
   const cleanOldCache = async () => {
     const cache = (await chrome.storage.local.get(AD_TIME_RANGE_CACHE_KEY))[AD_TIME_RANGE_CACHE_KEY] || {};
     const cutoff = Date.now() - CACHE_TTL_MS;

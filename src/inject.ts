@@ -13,11 +13,16 @@ import { AdTimeRangeCache, BilibiliPlayerResponse } from './types';
 // inject.ts — slim entry point wiring services together
 // ============================================================
 
+/** 当前用户配置（从 content script 接收） */
 let config: UserConfig | null = null;
+/** Gemini AI 客户端实例 */
 let geminiClient: GoogleGenAI | null = null;
+/** 广告时间范围缓存（从 content script 接收） */
 let adTimeRangeCache: AdTimeRangeCache | null = null;
 
+/** XHR 拦截到的播放器 API 响应缓存，按视频 BV 号索引 */
 const webResponseCache: { [videoBvid: string]: BilibiliPlayerResponse } = {};
+/** 当前正在处理的视频 BV 号 */
 let currentVideoId: string | null = null;
 
 // ---- Signal readiness ----
@@ -79,8 +84,12 @@ window.addEventListener('message', (event) => {
     }
 });
 
-// ---- Process a video ----
-
+/**
+ * 处理单个视频的广告检测流程
+ * 检查是否应跳过短视频，然后调用 AI 检测广告并初始化广告标记条
+ * @param response - B 站播放器 API 的响应数据
+ * @param videoId - 当前视频的 BV 号
+ */
 async function processVideo(response: BilibiliPlayerResponse, videoId: string): Promise<void> {
     if (config?.ignoreVideoLessThan5Minutes && shouldSkipVideo(true)) {
         return;
@@ -123,11 +132,16 @@ installXhrInterceptor(async (responseText: string) => {
 
 // ---- URL change monitoring ----
 
+/** 页面导航时清理所有资源和 DOM 元素 */
 function cleanupForNavigation(): void {
     cleanupManager.cleanupAll();
     cleanupDomElements();
 }
 
+/**
+ * 启动 URL 变化监控，检测 B 站 SPA 内的视频切换
+ * 切换时清理旧资源，并尝试从缓存中处理新视频
+ */
 function monitorUrlChanges(): void {
     setInterval(async () => {
         if (!window.location.pathname.startsWith('/video/')) {

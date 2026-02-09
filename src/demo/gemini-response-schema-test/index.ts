@@ -19,6 +19,7 @@ const fileContent = readFileSync(filePath, 'utf-8');
 const subStr = convertSubtitleObjToStr(JSON.parse(fileContent).body)
 
 console.log(subStr)
+/** Gemini AI 返回的广告时间范围的 JSON Schema */
 const responseSchema = {
     type: 'OBJECT',
     properties: {
@@ -28,6 +29,10 @@ const responseSchema = {
     required: ['startTime', 'endTime'],
 };
 
+/**
+ * Demo 入口 — 读取本地字幕文件，调用 Gemini AI 检测广告时间段
+ * 用于手动测试 Gemini API 的 responseJsonSchema 功能
+ */
 async function main() {
     const response = await geminiClient.models.generateContent({
         model: 'gemini-2.5-flash',

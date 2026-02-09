@@ -9,6 +9,7 @@ import { MessageType } from './constants';
 // AI ad detection — Gemini and Browser AI integration
 // ============================================================
 
+/** Gemini AI 返回的广告时间范围的 JSON Schema 定义 */
 const responseSchema = {
     type: 'OBJECT',
     properties: {
@@ -18,15 +19,27 @@ const responseSchema = {
     required: ['startTime', 'endTime'],
 };
 
+/** AI 广告检测的参数选项 */
 export interface IdentifyAdTimeRangeOptions {
+    /** Gemini AI 客户端实例 */
     geminiClient: GoogleGenAI;
+    /** 格式化后的字幕字符串 */
     subStr: string;
+    /** 使用的 AI 模型名称 */
     aiModel: string;
+    /** 视频标题（可选，辅助 AI 判断） */
     videoTitle?: string;
+    /** 视频描述（可选，辅助 AI 判断） */
     videoDescription?: string;
 }
 
-/** Build the prompt shared by both Browser AI and Gemini AI */
+/**
+ * 构建广告检测的 AI 提示词（Browser AI 和 Gemini AI 共用）
+ * @param subtitleStr - 格式化后的字幕字符串
+ * @param videoTitle - 视频标题（可选）
+ * @param videoDescription - 视频描述（可选）
+ * @returns 完整的提示词文本
+ */
 function buildAdDetectionPrompt(
     subtitleStr: string,
     videoTitle?: string,
@@ -64,6 +77,11 @@ function buildAdDetectionPrompt(
     return prompt;
 }
 
+/**
+ * 使用浏览器内置 AI 模型检测广告时间段（实验性功能）
+ * @param options - 包含字幕、视频信息等参数
+ * @returns 检测到的广告时间范围，未检测到返回 undefined
+ */
 export async function identifyAdTimeRangeByBrowserAI(options: IdentifyAdTimeRangeOptions): Promise<AdTimeRange | undefined> {
     if (!window.LanguageModel || !window.LanguageModel.create) {
         console.error('📺 🤖 ❌ Browser AI not initialized yet, cannot identify ads');
@@ -92,6 +110,12 @@ export async function identifyAdTimeRangeByBrowserAI(options: IdentifyAdTimeRang
     return undefined;
 }
 
+/**
+ * 检查 Gemini AI 服务的连通性
+ * @param geminiClient - Gemini AI 客户端实例
+ * @param aiModel - 使用的模型名称
+ * @returns AI 响应文本，连接失败则抛出异常
+ */
 export async function checkGeminiConnectivity(geminiClient: GoogleGenAI, aiModel: string): Promise<string | undefined> {
     try {
         const response = await geminiClient.models.generateContent({
@@ -111,6 +135,12 @@ export async function checkGeminiConnectivity(geminiClient: GoogleGenAI, aiModel
     }
 }
 
+/**
+ * 使用 Gemini AI 分析字幕内容，识别视频中的广告时间段
+ * 检测成功后会通过 postMessage 将结果发送给 content script 进行缓存
+ * @param options - 包含 Gemini 客户端、字幕、模型名称、视频信息等参数
+ * @returns 检测到的广告时间范围，未检测到或出错返回 null/undefined
+ */
 export async function identifyAdTimeRangeByGeminiAI(options: IdentifyAdTimeRangeOptions): Promise<AdTimeRange | undefined> {
     const { geminiClient, subStr, aiModel, videoTitle, videoDescription } = options;
 

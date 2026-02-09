@@ -21,10 +21,13 @@ import {
 // Bilibili UI — ad bar rendering, animations, auto-skip
 // ============================================================
 
+/** 当前显示的公共动画元素（思考中/警告等） */
 let commonAnimationElement: HTMLElement | null = null;
 
-// ---- Animation style injection ----
-
+/**
+ * 将所有动画的 CSS 样式注入到页面 <head> 中
+ * 每种动画只注入一次，通过 style 元素的 id 去重
+ */
 export function injectAnimationStyles(): void {
     for (const anim of ALL_ANIMATIONS) {
         const styleId = `${anim.name}-styles`;
@@ -38,8 +41,11 @@ export function injectAnimationStyles(): void {
     }
 }
 
-// ---- Animation management ----
-
+/**
+ * 在播放器上添加指定的动画效果（如思考中、警告等）
+ * 同一时间只显示一个动画，新动画会替换旧的
+ * @param targetAnimationClass - 要添加的动画 CSS 类名
+ */
 export function addAnimation(targetAnimationClass: string): void {
     injectAnimationStyles();
 
@@ -60,6 +66,7 @@ export function addAnimation(targetAnimationClass: string): void {
     console.log(`📺 ✨ ${targetAnimationClass} added`);
 }
 
+/** 移除当前显示的公共动画元素 */
 export function removeAnimation(): void {
     if (commonAnimationElement) {
         commonAnimationElement.remove();
@@ -68,8 +75,14 @@ export function removeAnimation(): void {
     }
 }
 
-// ---- Ad bar position calculation ----
-
+/**
+ * 计算广告标记条在进度条上的位置和宽度
+ * @param adStartSeconds - 广告开始时间（秒）
+ * @param adEndSeconds - 广告结束时间（秒）
+ * @param videoDuration - 视频总时长（秒）
+ * @param progressBarWidth - 进度条的像素宽度
+ * @returns 标记条的 left 偏移和 width（像素）
+ */
 function calculateAdBarPosition(
     adStartSeconds: number,
     adEndSeconds: number,
@@ -92,8 +105,11 @@ function calculateAdBarPosition(
     return { left, width };
 }
 
-// ---- Ad bar creation and update ----
-
+/**
+ * 更新所有已存在的广告标记条的位置和宽度（窗口 resize 时调用）
+ * @param adStartSeconds - 广告开始时间（秒）
+ * @param adEndSeconds - 广告结束时间（秒）
+ */
 function updateAdBarStyles(adStartSeconds: number, adEndSeconds: number): void {
     const adBars = Array.from(document.querySelectorAll(`.${CSS_CLASSES.AD_BAR}`)) as HTMLElement[];
     if (!adBars?.length) return;
@@ -114,6 +130,13 @@ function updateAdBarStyles(adStartSeconds: number, adEndSeconds: number): void {
     }
 }
 
+/**
+ * 在单个进度条元素上创建广告标记条
+ * @param progressWrap - 进度条 DOM 元素
+ * @param adStartSeconds - 广告开始时间（秒）
+ * @param adEndSeconds - 广告结束时间（秒）
+ * @param videoDuration - 视频总时长（秒）
+ */
 function createIndividualAdBar(
     progressWrap: HTMLElement,
     adStartSeconds: number,
@@ -140,6 +163,11 @@ function createIndividualAdBar(
     console.log(`📺 ✔️ Ad bar created: ${adStartSeconds}s - ${adEndSeconds}s (${left.toFixed(2)}px, ${width.toFixed(2)}px)`);
 }
 
+/**
+ * 在所有进度条上创建广告标记条
+ * @param adStartSeconds - 广告开始时间（秒）
+ * @param adEndSeconds - 广告结束时间（秒）
+ */
 function createAdBar(adStartSeconds: number, adEndSeconds: number): void {
     const progressWraps = Array.from(document.querySelectorAll(SELECTORS.PROGRESS_BAR)) as HTMLElement[];
     if (!progressWraps?.length) {
@@ -158,8 +186,12 @@ function createAdBar(adStartSeconds: number, adEndSeconds: number): void {
     }
 }
 
-// ---- Resize handling ----
-
+/**
+ * 设置广告标记条的 resize 响应处理器
+ * 监听窗口 resize 和进度条/播放器容器的尺寸变化，自动更新标记条位置
+ * @param adStartSeconds - 广告开始时间（秒）
+ * @param adEndSeconds - 广告结束时间（秒）
+ */
 function setupAdBarResizeHandlers(adStartSeconds: number, adEndSeconds: number): void {
     let resizeTimeout: number | null = null;
 
@@ -192,8 +224,13 @@ function setupAdBarResizeHandlers(adStartSeconds: number, adEndSeconds: number):
     }
 }
 
-// ---- Auto-skip ----
-
+/**
+ * 设置自动跳过广告功能
+ * 监听视频的 timeupdate 事件，在广告时间段自动跳转，并显示/移除跳过动画
+ * @param video - 视频 DOM 元素
+ * @param adStartSeconds - 广告开始时间（秒）
+ * @param adEndSeconds - 广告结束时间（秒）
+ */
 function setupAutoSkip(video: HTMLVideoElement, adStartSeconds: number, adEndSeconds: number): void {
     const autoSkip = config.autoSkip;
     let hasSkipped = false;
@@ -255,8 +292,7 @@ function setupAutoSkip(video: HTMLVideoElement, adStartSeconds: number, adEndSec
     console.log(`📺 ✔️ Auto-skip enabled: ${adStartSeconds}s - ${adEndSeconds}s`);
 }
 
-// ---- DOM element cleanup ----
-
+/** 清理所有广告相关的 DOM 元素（标记条、动画等） */
 export function cleanupDomElements(): void {
     // Remove all ad bars
     document.querySelectorAll(`.${CSS_CLASSES.AD_BAR}`).forEach(bar => bar.remove());
@@ -271,8 +307,12 @@ export function cleanupDomElements(): void {
     document.querySelectorAll(`.${skipAnimation.className}`).forEach(anim => anim.remove());
 }
 
-// ---- Main entry point ----
-
+/**
+ * 初始化广告标记条（主入口）
+ * 等待视频元素和进度条就绪后，创建标记条、设置 resize 处理和自动跳过
+ * @param adStartSeconds - 广告开始时间（秒）
+ * @param adEndSeconds - 广告结束时间（秒）
+ */
 export function initializeAdBar(adStartSeconds: number, adEndSeconds: number): void {
     injectAnimationStyles();
 

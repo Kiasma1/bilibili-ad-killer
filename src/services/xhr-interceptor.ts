@@ -5,8 +5,14 @@ import { BILIBILI_PLAYER_API } from '../constants';
 // Bilibili player API calls and trigger a callback on response
 // ============================================================
 
+/** 播放器 API 响应回调函数类型 */
 type OnPlayerApiResponse = (responseText: string) => void;
 
+/**
+ * 安装 XHR 拦截器 — 通过猴子补丁（monkey-patch）劫持 XMLHttpRequest，
+ * 拦截 B 站播放器 API 请求，在收到响应时触发回调
+ * @param onPlayerApiResponse - 拦截到播放器 API 响应时的回调，参数为响应文本
+ */
 export function installXhrInterceptor(onPlayerApiResponse: OnPlayerApiResponse): void {
     const originalOpen = XMLHttpRequest.prototype.open;
     const originalSend = XMLHttpRequest.prototype.send;

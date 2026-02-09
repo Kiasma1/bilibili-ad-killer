@@ -9,8 +9,11 @@ import { useI18n } from '../hooks/useI18n';
 import { DEFAULT_CONFIG } from '../config';
 import './App.css';
 
+/** 配置表单的数据结构 */
 interface ConfigForm {
+  /** AI 模型名称 */
   aiModel: string;
+  /** Gemini API 密钥 */
   apiKey: string;
 }
 
@@ -26,6 +29,10 @@ const App: React.FC = () => {
   const [browserModelAvailable, setBrowserModelAvailable] = useState<boolean>(false);
   const [usingBrowserAIModel, setUsingBrowserAIModel] = useState<boolean>(DEFAULT_CONFIG.usingBrowserAIModel);
 
+  /**
+   * 检查浏览器内置 AI 模型的可用性
+   * @returns 模型是否可用（available 状态返回 true）
+   */
   async function checkLocalModelAvailability(): Promise<boolean> {
     if (!window.LanguageModel) {
       showFailedNotification(t("browserModelNotSupported"))
@@ -75,6 +82,7 @@ const App: React.FC = () => {
     return false;
   }
 
+  /** 触发浏览器内置 AI 模型的下载（当前为占位实现） */
   async function downloadLocalModel() {
     return;
 
@@ -130,6 +138,10 @@ const App: React.FC = () => {
     // checkLocalModelAvailability();
   }, []);
 
+  /**
+   * 显示绿色成功通知
+   * @param message - 通知消息文本
+   */
   const showSuccessNotification = (message: string) => {
     notifications.show({
       title: t('saved'),
@@ -139,6 +151,10 @@ const App: React.FC = () => {
     });
   }
 
+  /**
+   * 显示红色错误通知
+   * @param message - 通知消息文本
+   */
   const showFailedNotification = (message: string) => {
     notifications.show({
       title: t('error'),
@@ -148,12 +164,20 @@ const App: React.FC = () => {
     });
   }
 
+  /**
+   * 更新"自动跳过广告"设置并保存到 Chrome 存储
+   * @param value - 是否开启自动跳过
+   */
   const updateAutoSkip = async (value: boolean) => {
     setAutoSkip(value);
     await chrome.storage.local.set({ autoSkip: value });
     showSuccessNotification(t('refreshToApply'));
   }
 
+  /**
+   * 更新"使用浏览器内置 AI"设置，先检查模型可用性
+   * @param value - 是否使用浏览器 AI
+   */
   const updateUsingBrowserAIModel = async (value: boolean) => {
     const browserAIModelAvailable = await checkLocalModelAvailability();
     if (!browserAIModelAvailable) {
@@ -165,12 +189,20 @@ const App: React.FC = () => {
     showSuccessNotification(t('refreshToApply'));
   }
 
+  /**
+   * 更新"忽略 5 分钟以下视频"设置并保存到 Chrome 存储
+   * @param value - 是否忽略短视频
+   */
   const updateignoreVideoLessThan5Minutes = async (value: boolean) => {
     setignoreVideoLessThan5Minutes(value);
     await chrome.storage.local.set({ ignoreVideoLessThan5Minutes: value });
     showSuccessNotification(t('refreshToApply'));
   }
 
+  /**
+   * 更新"忽略 30 分钟以上视频"设置并保存到 Chrome 存储
+   * @param value - 是否忽略长视频
+   */
   const updateIgnoreVideoMoreThan30Minutes = async (value: boolean) => {
     setIgnoreVideoMoreThan30Minutes(value);
     await chrome.storage.local.set({ ignoreVideoMoreThan30Minutes: value });
@@ -199,6 +231,10 @@ const App: React.FC = () => {
     loadFormData();
   }, []);
 
+  /**
+   * 提交配置表单 — 将 AI 模型和 API Key 保存到 Chrome 存储
+   * @param values - 表单数据（aiModel、apiKey）
+   */
   const handleSubmit = async (values: ConfigForm) => {
     console.log('Saving config:', values);
     await chrome.storage.local.set({
