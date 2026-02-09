@@ -1,5 +1,33 @@
-import { MessageType, CACHE_TTL_MS, STORAGE_KEYS } from './constants';
-import { DEFAULT_CONFIG } from './config';
+// ============================================================
+// Content script — runs in Chrome extension isolated world
+// NOTE: This file CANNOT use ES imports because Chrome loads
+// content scripts as plain scripts, not ES modules.
+// Constants are inlined here instead of imported.
+// ============================================================
+
+// ---- Inlined constants (from constants/index.ts) ----
+
+const MessageType = {
+  READY: 'BILIBILI_AD_SKIP_READY',
+  CONFIG: 'BILIBILI_AD_SKIP_CONFIG',
+  TOASTIFY_LOADED: 'TOASTIFY_LOADED',
+  REQUEST_CACHE: 'REQUEST_VIDEO_AD_TIMERANGE',
+  SEND_CACHE: 'SEND_VIDEO_AD_TIMERANGE',
+  SAVE_CACHE: 'SAVE_VIDEO_AD_TIMERANGE',
+} as const;
+
+const CACHE_TTL_MS = 3 * 24 * 60 * 60 * 1000;
+const AD_TIME_RANGE_CACHE_KEY = 'AD_TIME_RANGE_CACHE';
+
+const DEFAULT_CONFIG = {
+  apiKey: '',
+  aiModel: 'gemini-2.5-flash',
+  autoSkip: true,
+  ignoreVideoLessThan5Minutes: true,
+  usingBrowserAIModel: false,
+};
+
+// ============================================================
 
 console.log('📺 ✔️ Content script loaded');
 
@@ -65,12 +93,12 @@ injectScript.onload = () => {
   };
 
   const sendAdTimeRangeCache = async () => {
-    const cache = (await chrome.storage.local.get(STORAGE_KEYS.AD_TIME_RANGE_CACHE))[STORAGE_KEYS.AD_TIME_RANGE_CACHE];
+    const cache = (await chrome.storage.local.get(AD_TIME_RANGE_CACHE_KEY))[AD_TIME_RANGE_CACHE_KEY];
     window.postMessage({ type: MessageType.SEND_CACHE, data: cache }, '*');
   };
 
   const cleanOldCache = async () => {
-    const cache = (await chrome.storage.local.get(STORAGE_KEYS.AD_TIME_RANGE_CACHE))[STORAGE_KEYS.AD_TIME_RANGE_CACHE] || {};
+    const cache = (await chrome.storage.local.get(AD_TIME_RANGE_CACHE_KEY))[AD_TIME_RANGE_CACHE_KEY] || {};
     const cutoff = Date.now() - CACHE_TTL_MS;
 
     const cleaned = Object.entries(cache).reduce((acc, [videoId, entry]: [string, any]) => {
@@ -80,7 +108,7 @@ injectScript.onload = () => {
       return acc;
     }, {} as Record<string, any>);
 
-    await chrome.storage.local.set({ [STORAGE_KEYS.AD_TIME_RANGE_CACHE]: cleaned });
+    await chrome.storage.local.set({ [AD_TIME_RANGE_CACHE_KEY]: cleaned });
 
     const removedCount = Object.keys(cache).length - Object.keys(cleaned).length;
     if (removedCount > 0) {
@@ -108,9 +136,9 @@ injectScript.onload = () => {
         return;
       }
 
-      const cache = (await chrome.storage.local.get(STORAGE_KEYS.AD_TIME_RANGE_CACHE))[STORAGE_KEYS.AD_TIME_RANGE_CACHE] || {};
+      const cache = (await chrome.storage.local.get(AD_TIME_RANGE_CACHE_KEY))[AD_TIME_RANGE_CACHE_KEY] || {};
       await chrome.storage.local.set({
-        [STORAGE_KEYS.AD_TIME_RANGE_CACHE]: {
+        [AD_TIME_RANGE_CACHE_KEY]: {
           ...cache,
           [eventData.videoId]: {
             startTime: eventData.startTime,
