@@ -52,10 +52,17 @@ export type AdCacheEntry = AdTimeRange & {
 /** 视频 ID 到广告时间范围缓存的映射表 */
 export type AdTimeRangeCache = Record<string, AdCacheEntry>;
 
+/** AI 提供商类型 */
+export type AIProvider = 'gemini' | 'deepseek';
+
 /** 用户可配置的扩展设置 */
 export type UserConfig = {
+    /** 当前 AI 提供商 */
+    aiProvider: AIProvider;
     /** Gemini API 密钥 */
     apiKey: string;
+    /** DeepSeek API 密钥 */
+    deepseekApiKey: string;
     /** 使用的 AI 模型名称 */
     aiModel: string;
     /** 是否自动跳过广告 */

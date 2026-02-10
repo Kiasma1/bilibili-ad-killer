@@ -1,5 +1,4 @@
-import { GoogleGenAI } from '@google/genai';
-import { checkGeminiConnectivity, identifyAdTimeRangeByGeminiAI } from '../ai';
+import { AIClient, checkAIConnectivity, identifyAdTimeRange } from '../ai';
 import { addAnimation, removeAnimation } from '../bilibili-ui';
 import { MIN_VIDEO_DURATION_S, WARNING_DISPLAY_MS } from '../constants';
 import { warningAnimation } from '../style';
@@ -55,7 +54,7 @@ function getCid(response: BilibiliPlayerResponse): number | undefined {
  */
 async function detectWithSubtitles(
     subtitles: BilibiliSubtitle[],
-    geminiClient: GoogleGenAI,
+    aiClient: AIClient,
     aiModel: string,
     learnedRules: LearnedRule[],
 ): Promise<AdTimeRange | null> {
@@ -120,8 +119,8 @@ async function detectWithSubtitles(
 
     try {
         addAnimation('bilibili-thinking-animation');
-        const result = await identifyAdTimeRangeByGeminiAI({
-            geminiClient,
+        const result = await identifyAdTimeRange({
+            aiClient,
             subStr: compressedStr,
             aiModel,
             videoTitle,
@@ -150,7 +149,7 @@ async function detectWithSubtitles(
  */
 async function detectWithDanmaku(
     cid: number,
-    geminiClient: GoogleGenAI,
+    aiClient: AIClient,
     aiModel: string,
     learnedRules: LearnedRule[],
 ): Promise<AdTimeRange | null> {
@@ -182,8 +181,8 @@ async function detectWithDanmaku(
 
     try {
         addAnimation('bilibili-thinking-animation');
-        const result = await identifyAdTimeRangeByGeminiAI({
-            geminiClient,
+        const result = await identifyAdTimeRange({
+            aiClient,
             subStr: danmakuStr,
             aiModel,
             videoTitle,
@@ -210,7 +209,7 @@ async function detectWithDanmaku(
  * 路线 B：无字幕 → 弹幕 fallback
  * @param response - B 站播放器 API 的响应数据
  * @param videoId - 当前视频的 BV 号
- * @param geminiClient - Gemini AI 客户端实例（可能为 null）
+ * @param aiClient - AI 客户端实例（可能为 null）
  * @param aiModel - 使用的 AI 模型名称
  * @param cache - 广告时间范围缓存（可能为 null）
  * @param learnedRules - 自学习广告规则列表
@@ -219,7 +218,7 @@ async function detectWithDanmaku(
 export async function detectAdFromVideo(
     response: BilibiliPlayerResponse,
     videoId: string,
-    geminiClient: GoogleGenAI | null,
+    aiClient: AIClient | null,
     aiModel: string,
     cache: AdTimeRangeCache | null,
     learnedRules: LearnedRule[] = [],
@@ -242,13 +241,18 @@ export async function detectAdFromVideo(
     console.log('📺 📦 ✔️ Cache miss for video:', videoId);
 
     // Verify AI client is ready
-    if (!geminiClient || !aiModel) {
-        console.error('📺 🤖 ❌ Gemini client not initialized');
+    if (!aiClient || !aiModel) {
+        console.error('📺 🤖 ❌ AI client not initialized');
         return null;
     }
 
-    const connectivity = await checkGeminiConnectivity(geminiClient, aiModel);
-    console.log('📺 🤖 Check Gemini connectivity', connectivity);
+    try {
+        const connectivity = await checkAIConnectivity(aiClient, aiModel);
+        console.log('📺 🤖 Check AI connectivity', connectivity);
+    } catch {
+        console.error('📺 🤖 ❌ AI connectivity check failed');
+        return null;
+    }
 
     // Determine route: subtitles or danmaku fallback
     const hasSubtitles = (response.data?.subtitle?.subtitles?.length ?? 0) > 0;
@@ -273,7 +277,7 @@ export async function detectAdFromVideo(
         const jsonRes: SubtitleFileResponse = await (await fetch(fullUrl)).json();
         const subtitles: BilibiliSubtitle[] = jsonRes.body;
 
-        return detectWithSubtitles(subtitles, geminiClient, aiModel, learnedRules);
+        return detectWithSubtitles(subtitles, aiClient, aiModel, learnedRules);
     } else {
         // Route B: Danmaku fallback
         console.log('📺 ✔️ Route B: Danmaku fallback (no subtitles)');
@@ -284,6 +288,6 @@ export async function detectAdFromVideo(
             return null;
         }
 
-        return detectWithDanmaku(cid, geminiClient, aiModel, learnedRules);
+        return detectWithDanmaku(cid, aiClient, aiModel, learnedRules);
     }
 }

@@ -1,4 +1,5 @@
 import { GoogleGenAI } from '@google/genai';
+import OpenAI from 'openai';
 import { initializeAdBar, addAnimation, removeAnimation, cleanupDomElements } from './bilibili-ui';
 import { getVideoIdFromCurrentPage } from './util';
 import { showToast, initToastMessages, messages, notifyDelayedMessages } from './toast';
@@ -8,6 +9,7 @@ import { installXhrInterceptor } from './services/xhr-interceptor';
 import { shouldSkipVideo, detectAdFromVideo } from './services/subtitle';
 import { cleanupManager } from './services/cleanup';
 import { AdTimeRangeCache, BilibiliPlayerResponse, LearnedRule } from './types';
+import { AIClient } from './ai';
 
 // ============================================================
 // inject.ts — slim entry point wiring services together
@@ -15,8 +17,8 @@ import { AdTimeRangeCache, BilibiliPlayerResponse, LearnedRule } from './types';
 
 /** 当前用户配置（从 content script 接收） */
 let config: UserConfig | null = null;
-/** Gemini AI 客户端实例 */
-let geminiClient: GoogleGenAI | null = null;
+/** AI 客户端实例（Gemini 或 DeepSeek） */
+let aiClient: AIClient | null = null;
 /** 广告时间范围缓存（从 content script 接收） */
 let adTimeRangeCache: AdTimeRangeCache | null = null;
 /** 自学习广告规则（从 content script 接收） */
@@ -74,7 +76,9 @@ window.addEventListener('message', (event) => {
         }
 
         console.log('📺 ⚙️ ✔️ Config received:', {
+            aiProvider: receivedConfig.aiProvider,
             apiKey: receivedConfig.apiKey,
+            deepseekApiKey: receivedConfig.deepseekApiKey,
             aiModel: receivedConfig.aiModel,
             autoSkip: receivedConfig.autoSkip,
             ignoreVideoLessThan5Minutes: receivedConfig.ignoreVideoLessThan5Minutes,
@@ -82,9 +86,22 @@ window.addEventListener('message', (event) => {
             usingBrowserAIModel: receivedConfig.usingBrowserAIModel,
         });
 
-        if (receivedConfig.apiKey) {
-            geminiClient = new GoogleGenAI({ apiKey: receivedConfig.apiKey });
-            console.log('📺 🤖 ✔️ AI initialized');
+        if (receivedConfig.aiProvider === 'deepseek' && receivedConfig.deepseekApiKey) {
+            aiClient = {
+                provider: 'deepseek',
+                client: new OpenAI({
+                    apiKey: receivedConfig.deepseekApiKey,
+                    baseURL: 'https://api.deepseek.com',
+                    dangerouslyAllowBrowser: true,
+                }),
+            };
+            console.log('📺 🤖 ✔️ DeepSeek AI initialized');
+        } else if (receivedConfig.apiKey) {
+            aiClient = {
+                provider: 'gemini',
+                client: new GoogleGenAI({ apiKey: receivedConfig.apiKey }),
+            };
+            console.log('📺 🤖 ✔️ Gemini AI initialized');
         } else {
             console.log('📺 🤖 ❌ No API key provided');
             showToast(messages.noApiKeyProvided);
@@ -113,7 +130,7 @@ async function processVideo(response: BilibiliPlayerResponse, videoId: string): 
     }
 
     const adTimeRange = await detectAdFromVideo(
-        response, videoId, geminiClient, config?.aiModel ?? '', adTimeRangeCache, learnedRules
+        response, videoId, aiClient, config?.aiModel ?? '', adTimeRangeCache, learnedRules
     );
 
     if (!adTimeRange) {

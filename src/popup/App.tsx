@@ -8,15 +8,19 @@ import { notifications } from '@mantine/notifications';
 import { useI18n } from '../hooks/useI18n';
 import { DEFAULT_CONFIG } from '../config';
 import { STORAGE_KEYS } from '../constants';
-import { LearnedRule } from '../types';
+import { AIProvider, LearnedRule } from '../types';
 import './App.css';
 
 /** 配置表单的数据结构 */
 interface ConfigForm {
+  /** AI 提供商 */
+  aiProvider: AIProvider;
   /** AI 模型名称 */
   aiModel: string;
   /** Gemini API 密钥 */
   apiKey: string;
+  /** DeepSeek API 密钥 */
+  deepseekApiKey: string;
 }
 
 const App: React.FC = () => {
@@ -235,22 +239,26 @@ const App: React.FC = () => {
   const form = useForm<ConfigForm>({
     mode: 'uncontrolled',
     initialValues: {
+      aiProvider: DEFAULT_CONFIG.aiProvider,
       aiModel: DEFAULT_CONFIG.aiModel,
       apiKey: DEFAULT_CONFIG.apiKey,
+      deepseekApiKey: DEFAULT_CONFIG.deepseekApiKey,
     },
   });
 
   useEffect(() => {
     const loadFormData = async () => {
-      const result = await chrome.storage.local.get(['aiModel', 'apiKey']);
-      
+      const result = await chrome.storage.local.get(['aiProvider', 'aiModel', 'apiKey', 'deepseekApiKey']);
+
       form.setValues({
+        aiProvider: result.aiProvider || DEFAULT_CONFIG.aiProvider,
         aiModel: result.aiModel || DEFAULT_CONFIG.aiModel,
         apiKey: result.apiKey || DEFAULT_CONFIG.apiKey,
+        deepseekApiKey: result.deepseekApiKey || DEFAULT_CONFIG.deepseekApiKey,
       });
       form.resetDirty();
     };
-    
+
     loadFormData();
   }, []);
 
@@ -261,8 +269,10 @@ const App: React.FC = () => {
   const handleSubmit = async (values: ConfigForm) => {
     console.log('Saving config:', values);
     await chrome.storage.local.set({
+      aiProvider: values.aiProvider,
       aiModel: values.aiModel,
-      apiKey: values.apiKey
+      apiKey: values.apiKey,
+      deepseekApiKey: values.deepseekApiKey,
     });
     form.resetDirty();
     showSuccessNotification(t('refreshToApply'));
@@ -342,6 +352,24 @@ const App: React.FC = () => {
                   }
                 }} />
                 <Select
+                  {...form.getInputProps('aiProvider')}
+                  key={form.key('aiProvider')}
+                  label="AI Provider"
+                  size="xs"
+                  data={[
+                    { value: 'gemini', label: 'Google Gemini' },
+                    { value: 'deepseek', label: 'DeepSeek' },
+                  ]}
+                  onChange={(value) => {
+                    form.setFieldValue('aiProvider', value as AIProvider);
+                    if (value === 'deepseek') {
+                      form.setFieldValue('aiModel', 'deepseek-chat');
+                    } else {
+                      form.setFieldValue('aiModel', 'gemini-2.5-flash');
+                    }
+                  }}
+                />
+                <Select
                   {...form.getInputProps('aiModel')}
                   key={form.key('aiModel')}
                   label={t('aiModel')}
@@ -349,33 +377,45 @@ const App: React.FC = () => {
                   maxDropdownHeight={100}
                   searchable
                   size="xs"
-                  data={[
-                    {
-                      group: 'Gemini',
-                      items: [
-                        {
-                          value: "gemini-3.0-flash",
-                          label: "gemini-3.0-flash"
-                        },
-                        {
-                          value: "gemini-2.5-pro",
-                          label: "gemini-2.5-pro"
-                        },
-                        {
-                          value: "gemini-2.5-flash",
-                          label: "gemini-2.5-flash"
-                        },
-                      ]
-                    }
-                  ]}
+                  data={
+                    form.getValues().aiProvider === 'gemini'
+                      ? [
+                          {
+                            group: 'Gemini',
+                            items: [
+                              { value: 'gemini-3.0-flash', label: 'gemini-3.0-flash' },
+                              { value: 'gemini-2.5-pro', label: 'gemini-2.5-pro' },
+                              { value: 'gemini-2.5-flash', label: 'gemini-2.5-flash' },
+                            ],
+                          },
+                        ]
+                      : [
+                          {
+                            group: 'DeepSeek',
+                            items: [
+                              { value: 'deepseek-chat', label: 'deepseek-chat' },
+                              { value: 'deepseek-reasoner', label: 'deepseek-reasoner' },
+                            ],
+                          },
+                        ]
+                  }
                 />
 
-                <PasswordInput
-                  label={t('apiKey')}
-                  placeholder={t('enterApiKey')}
-                  {...form.getInputProps('apiKey')}
-                  size="xs"
-                />
+                {form.getValues().aiProvider === 'gemini' ? (
+                  <PasswordInput
+                    label="Gemini API Key"
+                    placeholder={t('enterApiKey')}
+                    {...form.getInputProps('apiKey')}
+                    size="xs"
+                  />
+                ) : (
+                  <PasswordInput
+                    label="DeepSeek API Key"
+                    placeholder={t('enterApiKey')}
+                    {...form.getInputProps('deepseekApiKey')}
+                    size="xs"
+                  />
+                )}
 
               </div>
               <Group justify="flex-end" mt="sm" gap="xs">

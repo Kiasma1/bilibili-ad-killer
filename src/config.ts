@@ -4,7 +4,9 @@ export type { UserConfig } from './types';
 
 /** 默认用户配置，未设置时使用这些值 */
 export const DEFAULT_CONFIG: UserConfig = {
+    aiProvider: 'gemini',
     apiKey: '',
+    deepseekApiKey: '',
     aiModel: 'gemini-2.5-flash',
     autoSkip: true,
     ignoreVideoLessThan5Minutes: true,

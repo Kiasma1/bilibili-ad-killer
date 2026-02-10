@@ -26,7 +26,9 @@ const LEARNED_AD_RULES_KEY = 'LEARNED_AD_RULES';
 const MAX_LEARNED_RULES = 200;
 
 const DEFAULT_CONFIG = {
+  aiProvider: 'gemini' as const,
   apiKey: '',
+  deepseekApiKey: '',
   aiModel: 'gemini-2.5-flash',
   autoSkip: true,
   ignoreVideoLessThan5Minutes: true,
@@ -65,10 +67,12 @@ injectScript.onload = () => {
 
 (async () => {
   const result = await chrome.storage.local.get([
-    'apiKey', 'aiModel', 'autoSkip', 'ignoreVideoLessThan5Minutes', 'ignoreVideoMoreThan30Minutes', 'usingBrowserAIModel'
+    'aiProvider', 'apiKey', 'deepseekApiKey', 'aiModel', 'autoSkip', 'ignoreVideoLessThan5Minutes', 'ignoreVideoMoreThan30Minutes', 'usingBrowserAIModel'
   ]);
 
+  const aiProvider = result.aiProvider || DEFAULT_CONFIG.aiProvider;
   const apiKey = result.apiKey || DEFAULT_CONFIG.apiKey;
+  const deepseekApiKey = result.deepseekApiKey || DEFAULT_CONFIG.deepseekApiKey;
   const aiModel = result.aiModel || DEFAULT_CONFIG.aiModel;
   const autoSkip = result.autoSkip !== undefined ? result.autoSkip : DEFAULT_CONFIG.autoSkip;
   const usingBrowserAIModel = result.usingBrowserAIModel !== undefined
@@ -82,7 +86,7 @@ injectScript.onload = () => {
     : DEFAULT_CONFIG.ignoreVideoMoreThan30Minutes;
 
   console.log('📺 ✔️ Content script - Config retrieved:', {
-    apiKey, aiModel, autoSkip, usingBrowserAIModel, ignoreVideoLessThan5Minutes, ignoreVideoMoreThan30Minutes
+    aiProvider, apiKey, deepseekApiKey, aiModel, autoSkip, usingBrowserAIModel, ignoreVideoLessThan5Minutes, ignoreVideoMoreThan30Minutes
   });
 
   /**
@@ -92,7 +96,7 @@ injectScript.onload = () => {
     console.log('📺 ✔️ Sending config via postMessage');
     window.postMessage({
       type: MessageType.CONFIG,
-      config: { apiKey, aiModel, autoSkip, ignoreVideoLessThan5Minutes, ignoreVideoMoreThan30Minutes, usingBrowserAIModel },
+      config: { aiProvider, apiKey, deepseekApiKey, aiModel, autoSkip, ignoreVideoLessThan5Minutes, ignoreVideoMoreThan30Minutes, usingBrowserAIModel },
       i18n: {
         noApiKeyProvided: chrome.i18n.getMessage('noApiKeyProvided'),
         aiNotInitialized: chrome.i18n.getMessage('aiNotInitialized'),
