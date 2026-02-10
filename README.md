@@ -114,13 +114,16 @@ User opens Bilibili video page
 │   ┌─ Route A: Subtitle ──────┐  ┌─ Route B: Danmaku ──────┐ │
 │   │ 1. Fetch subtitle JSON   │  │ 1. Get cid               │ │
 │   │ 2. Regex pre-screen      │  │ 2. Fetch danmaku XML     │ │
-│   │    ├─ HIT → return range │  │ 3. Regex pre-screen      │ │
-│   │    └─ MISS → continue    │  │    ├─ NO HIT → no ads    │ │
-│   │ 3. Compress subtitles    │  │    └─ HIT → continue     │ │
-│   │ 4. Send to Gemini AI     │  │ 4. Extract time window   │ │
-│   │ 5. Save advertiser rule  │  │ 5. Send to Gemini AI     │ │
-│   └──────────────────────────┘  │ 6. Save advertiser rule  │ │
-│                                 └──────────────────────────┘ │
+│   │    ├─ Group into segments │  │ 3. Regex pre-screen      │ │
+│   │    │  (gap ≤5s = same ad) │  │    ├─ NO HIT → no ads    │ │
+│   │    ├─ Any seg ≥30s?       │  │    └─ HIT → continue     │ │
+│   │    │  YES → return range  │  │ 4. Extract time window   │ │
+│   │    │  NO  → continue      │  │ 5. Send to Gemini AI     │ │
+│   │    └─ No hits → continue  │  │ 6. Save advertiser rule  │ │
+│   │ 3. Compress subtitles    │  └──────────────────────────┘ │
+│   │ 4. Send to Gemini AI     │                               │
+│   │ 5. Save advertiser rule  │                               │
+│   └──────────────────────────┘                               │
 │         │                                                    │
 │         ▼                                                    │
 │  initializeAdBar(startTime, endTime)                         │
@@ -165,7 +168,7 @@ When Vite splits shared code (config, constants, types) into a chunk (index.js),
 Many Bilibili videos lack subtitles (especially older or user-uploaded content). Route B uses danmaku (viewer comments) as a fallback signal — viewers often comment "ad", "skip", etc. during sponsored segments.
 
 **Why local regex pre-screening?**
-Sending all subtitles/danmaku to Gemini AI costs ~2000 tokens per request. Built-in regex patterns catch common ad keywords (广告, 恰饭, 感谢赞助, etc.) for zero-token detection. Self-learning rules accumulate advertiser names from AI responses.
+Sending all subtitles/danmaku to Gemini AI costs ~2000 tokens per request. Built-in regex patterns catch common ad keywords (广告, 恰饭, 感谢赞助, etc.). Hits are grouped into contiguous segments (gap ≤5s = same ad). Segments ≥30s are returned directly (zero tokens). Shorter hits are forwarded to AI since they may be false positives (normal content mentioning ad-related words). Self-learning rules accumulate advertiser names from AI responses, growing the regex pool over time.
 
 **Why subtitle compression?**
 Raw subtitles can be 200+ entries. The compressor merges them into 30-second windows, filters filler words, and deduplicates — reducing token consumption by ~60%.
