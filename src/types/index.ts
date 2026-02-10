@@ -15,6 +15,26 @@ export type BilibiliSubtitle = {
 /** 格式化后的字幕字符串，格式为 [开始时间-结束时间]:内容 */
 export type SubtitleString = `[${string}-${string}]:${string}`;
 
+/** 单条弹幕条目 */
+export type Danmaku = {
+    /** 出现时间（秒） */
+    time: number;
+    /** 弹幕文本 */
+    content: string;
+}
+
+/** 自学习广告检测规则 */
+export type LearnedRule = {
+    /** 广告商名称 */
+    keyword: string;
+    /** 正则字符串 */
+    pattern: string;
+    /** 命中次数 */
+    hitCount: number;
+    /** 添加时间戳 */
+    addedAt: number;
+}
+
 /** 检测到的广告片段的时间范围 */
 export type AdTimeRange = {
     /** 广告开始时间（秒） */
@@ -53,6 +73,8 @@ export type BilibiliPlayerResponse = {
     data: {
         /** 视频的 BV 号 */
         bvid: string;
+        /** 视频的 cid（用于弹幕 API） */
+        cid?: number;
         /** 视频标题 */
         name?: string;
         /** 字幕信息 */

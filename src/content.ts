@@ -15,10 +15,15 @@ const MessageType = {
   SEND_CACHE: 'SEND_VIDEO_AD_TIMERANGE',
   SAVE_CACHE: 'SAVE_VIDEO_AD_TIMERANGE',
   URL_CHANGED: 'BILIBILI_AD_SKIP_URL_CHANGED',
+  REQUEST_LEARNED_RULES: 'REQUEST_LEARNED_RULES',
+  SEND_LEARNED_RULES: 'SEND_LEARNED_RULES',
+  SAVE_LEARNED_RULE: 'SAVE_LEARNED_RULE',
 } as const;
 
 const CACHE_TTL_MS = 3 * 24 * 60 * 60 * 1000;
 const AD_TIME_RANGE_CACHE_KEY = 'AD_TIME_RANGE_CACHE';
+const LEARNED_AD_RULES_KEY = 'LEARNED_AD_RULES';
+const MAX_LEARNED_RULES = 200;
 
 const DEFAULT_CONFIG = {
   apiKey: '',
@@ -160,6 +165,35 @@ injectScript.onload = () => {
       });
 
       await cleanOldCache();
+    }
+
+    if (event.data.type === MessageType.REQUEST_LEARNED_RULES) {
+      console.log('📺 🔍 Received request for learned rules');
+      const rules = (await chrome.storage.local.get(LEARNED_AD_RULES_KEY))[LEARNED_AD_RULES_KEY] || [];
+      window.postMessage({ type: MessageType.SEND_LEARNED_RULES, data: rules }, '*');
+    }
+
+    if (event.data.type === MessageType.SAVE_LEARNED_RULE) {
+      const newRule = event.data.data;
+      if (!newRule || !newRule.keyword) {
+        console.log('📺 ❌ Invalid learned rule received');
+        return;
+      }
+
+      const existingRules = (await chrome.storage.local.get(LEARNED_AD_RULES_KEY))[LEARNED_AD_RULES_KEY] || [];
+      const existing = existingRules.find((r: any) => r.keyword === newRule.keyword);
+      if (existing) {
+        existing.hitCount += 1;
+      } else {
+        existingRules.push(newRule);
+        if (existingRules.length > MAX_LEARNED_RULES) {
+          existingRules.sort((a: any, b: any) => a.hitCount - b.hitCount);
+          existingRules.shift();
+        }
+      }
+
+      await chrome.storage.local.set({ [LEARNED_AD_RULES_KEY]: existingRules });
+      console.log(`📺 🔍 Saved learned rule: "${newRule.keyword}" (total: ${existingRules.length})`);
     }
   });
 

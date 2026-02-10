@@ -39,6 +39,8 @@ interface BilibiliVideoData {
     duration: number;
     /** 视频 BV 号 */
     bvid: string;
+    /** 视频 cid（用于弹幕 API） */
+    cid?: number;
 }
 
 /** B 站页面初始状态，挂载在 window.__INITIAL_STATE__ 上 */

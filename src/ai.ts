@@ -8,21 +8,27 @@ import { getVideoIdFromCurrentPage } from './util';
 // AI ad detection — Gemini and Browser AI integration
 // ============================================================
 
-/** Gemini AI 返回的广告时间范围的 JSON Schema 定义 */
+/** Gemini AI 返回的广告时间范围的 JSON Schema 定义（含可选 advertiser） */
 const responseSchema = {
     type: 'OBJECT',
     properties: {
         startTime: { type: 'number', nullable: false },
         endTime: { type: 'number', nullable: false },
+        advertiser: { type: 'string', nullable: true },
     },
     required: ['startTime', 'endTime'],
 };
+
+/** AI 广告检测的返回结果（含可选 advertiser） */
+export interface AdDetectionResult extends AdTimeRange {
+    advertiser?: string;
+}
 
 /** AI 广告检测的参数选项 */
 export interface IdentifyAdTimeRangeOptions {
     /** Gemini AI 客户端实例 */
     geminiClient: GoogleGenAI;
-    /** 格式化后的字幕字符串 */
+    /** 格式化后的字幕/弹幕字符串 */
     subStr: string;
     /** 使用的 AI 模型名称 */
     aiModel: string;
@@ -30,6 +36,8 @@ export interface IdentifyAdTimeRangeOptions {
     videoTitle?: string;
     /** 视频描述（可选，辅助 AI 判断） */
     videoDescription?: string;
+    /** 是否为弹幕输入（使用弹幕专用 prompt） */
+    isDanmaku?: boolean;
 }
 
 /**
@@ -55,6 +63,52 @@ function buildAdDetectionPrompt(
     字幕内容如下：
     ------
     ${subtitleStr}
+    `;
+
+    if (videoTitle) {
+        prompt += `
+    ------
+    视频标题如下：
+    ${videoTitle}
+    `;
+    }
+
+    if (videoDescription) {
+        prompt += `
+    ------
+    视频描述如下：
+    ${videoDescription}
+    `;
+    }
+
+    return prompt;
+}
+
+/**
+ * 构建弹幕广告检测的 AI 提示词
+ * @param danmakuStr - 格式化后的弹幕字符串
+ * @param videoTitle - 视频标题（可选）
+ * @param videoDescription - 视频描述（可选）
+ * @returns 完整的提示词文本
+ */
+function buildDanmakuAdDetectionPrompt(
+    danmakuStr: string,
+    videoTitle?: string,
+    videoDescription?: string
+): string {
+    let prompt = `
+    接下来我会分享给你一段视频的弹幕内容（观众实时评论）。
+    弹幕格式为：[{时间}s] {弹幕内容}，条目之间由分号（;）隔开。
+    弹幕中可能包含观众对广告内容的反应，例如"广告来了"、"恰饭"、"跳过"等。
+    请根据弹幕内容判断视频中是否存在广告片段，并给出广告的起止时间。
+    如果能识别出广告商名称，请在 advertiser 字段中返回。
+
+    如果存在广告内容，请将广告的起止时间返回给我
+    如果不存在广告内容，返回null
+
+    弹幕内容如下：
+    ------
+    ${danmakuStr}
     `;
 
     if (videoTitle) {
@@ -135,13 +189,13 @@ export async function checkGeminiConnectivity(geminiClient: GoogleGenAI, aiModel
 }
 
 /**
- * 使用 Gemini AI 分析字幕内容，识别视频中的广告时间段
+ * 使用 Gemini AI 分析字幕/弹幕内容，识别视频中的广告时间段
  * 检测成功后会通过 postMessage 将结果发送给 content script 进行缓存
- * @param options - 包含 Gemini 客户端、字幕、模型名称、视频信息等参数
- * @returns 检测到的广告时间范围，未检测到或出错返回 null/undefined
+ * @param options - 包含 Gemini 客户端、字幕/弹幕、模型名称、视频信息等参数
+ * @returns 检测到的广告时间范围（含可选 advertiser），未检测到或出错返回 undefined
  */
-export async function identifyAdTimeRangeByGeminiAI(options: IdentifyAdTimeRangeOptions): Promise<AdTimeRange | undefined> {
-    const { geminiClient, subStr, aiModel, videoTitle, videoDescription } = options;
+export async function identifyAdTimeRangeByGeminiAI(options: IdentifyAdTimeRangeOptions): Promise<AdDetectionResult | undefined> {
+    const { geminiClient, subStr, aiModel, videoTitle, videoDescription, isDanmaku } = options;
 
     if (!geminiClient || !aiModel) {
         console.error('📺 🤖 ❌ AI not initialized yet, cannot identify ads');
@@ -149,7 +203,9 @@ export async function identifyAdTimeRangeByGeminiAI(options: IdentifyAdTimeRange
         return undefined;
     }
 
-    const finalPrompt = buildAdDetectionPrompt(subStr, videoTitle, videoDescription);
+    const finalPrompt = isDanmaku
+        ? buildDanmakuAdDetectionPrompt(subStr, videoTitle, videoDescription)
+        : buildAdDetectionPrompt(subStr, videoTitle, videoDescription);
 
     try {
         const response = await geminiClient.models.generateContent({
@@ -187,7 +243,16 @@ export async function identifyAdTimeRangeByGeminiAI(options: IdentifyAdTimeRange
                 data: { videoId, ...targetAdTimeRange },
             });
         }
-        return targetAdTimeRange;
+
+        const result: AdDetectionResult = {
+            startTime: targetAdTimeRange.startTime,
+            endTime: targetAdTimeRange.endTime,
+        };
+        if (targetAdTimeRange.advertiser) {
+            result.advertiser = targetAdTimeRange.advertiser;
+            console.log(`📺 🤖 Advertiser detected: "${targetAdTimeRange.advertiser}"`);
+        }
+        return result;
     } catch (err) {
         console.log('📺 🤖 ❌ Failed to reach AI service, message:', err);
         showToast(messages.aiServiceFailed);

@@ -79,15 +79,18 @@ export default defineConfig({
           });
 
           // Build variable declarations mapping imported names to local chunk variables
-          const varDecls = importBindings.map(binding => {
+          // Wrap chunk code in its own IIFE to avoid variable name collisions
+          // between chunk locals and inject.js locals (e.g. Google GenAI SDK)
+          const returnProps = importBindings.map(binding => {
             const exportPair = exportPairs.find(ep => ep.exported === binding.imported);
             if (!exportPair) return '';
-            if (exportPair.local === binding.local) return '';
-            return `var ${binding.local}=${exportPair.local};`;
-          }).filter(Boolean).join('');
+            return `${binding.local}:${exportPair.local}`;
+          }).filter(Boolean).join(',');
 
-          // Replace the import statement with inlined chunk code + variable mappings
-          injectContent = injectContent.replace(importPattern, chunkCode + ';' + varDecls);
+          const wrappedChunk = `var{${returnProps}}=(function(){${chunkCode};return{${returnProps}}})();`;
+
+          // Replace the import statement with the wrapped chunk
+          injectContent = injectContent.replace(importPattern, wrappedChunk);
 
           console.log(`✅ Inlined ${chunkFile} into inject.js`);
         }

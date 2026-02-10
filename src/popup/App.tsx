@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Switch, Select, PasswordInput, Button, Stack, Group, Divider, Progress, Text, List } from '@mantine/core';
+import { Switch, Select, PasswordInput, Button, Stack, Group, Divider, Progress, Text, List, ActionIcon, Badge, Table, ScrollArea } from '@mantine/core';
 import { Typography } from '@mantine/core';
 import { Tabs } from '@mantine/core';
 import { useForm } from '@mantine/form';
@@ -7,6 +7,8 @@ import { Alert } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { useI18n } from '../hooks/useI18n';
 import { DEFAULT_CONFIG } from '../config';
+import { STORAGE_KEYS } from '../constants';
+import { LearnedRule } from '../types';
 import './App.css';
 
 /** 配置表单的数据结构 */
@@ -28,6 +30,7 @@ const App: React.FC = () => {
   const [browserModelInDownloading, setBrowserModelInDownloading] = useState<boolean>(false);
   const [browserModelAvailable, setBrowserModelAvailable] = useState<boolean>(false);
   const [usingBrowserAIModel, setUsingBrowserAIModel] = useState<boolean>(DEFAULT_CONFIG.usingBrowserAIModel);
+  const [learnedRules, setLearnedRules] = useState<LearnedRule[]>([]);
 
   /**
    * 检查浏览器内置 AI 模型的可用性
@@ -135,8 +138,28 @@ const App: React.FC = () => {
     };
     
     loadSettings();
+    loadLearnedRules();
     // checkLocalModelAvailability();
   }, []);
+
+  const loadLearnedRules = async () => {
+    const result = await chrome.storage.local.get(STORAGE_KEYS.LEARNED_AD_RULES);
+    const rules = result[STORAGE_KEYS.LEARNED_AD_RULES] || [];
+    setLearnedRules(rules);
+  };
+
+  const deleteLearnedRule = async (keyword: string) => {
+    const updated = learnedRules.filter(r => r.keyword !== keyword);
+    await chrome.storage.local.set({ [STORAGE_KEYS.LEARNED_AD_RULES]: updated });
+    setLearnedRules(updated);
+    showSuccessNotification('Rule deleted');
+  };
+
+  const clearAllLearnedRules = async () => {
+    await chrome.storage.local.set({ [STORAGE_KEYS.LEARNED_AD_RULES]: [] });
+    setLearnedRules([]);
+    showSuccessNotification('All rules cleared');
+  };
 
   /**
    * 显示绿色成功通知
@@ -362,6 +385,54 @@ const App: React.FC = () => {
               </Group>
             </Stack>
           </form>
+          <div style={{ marginTop: '8px' }}>
+            <Divider my="xs" label="自学习广告规则" labelPosition="center" styles={{
+              root: { marginBlock: 0, marginBottom: "0px" }
+            }} />
+            {learnedRules.length === 0 ? (
+              <Text size="xs" c="dimmed" ta="center" py="xs">暂无自学习规则</Text>
+            ) : (
+              <>
+                <ScrollArea h={120} type="auto">
+                  <Table striped highlightOnHover withTableBorder withColumnBorders styles={{ table: { fontSize: '12px' } }}>
+                    <Table.Thead>
+                      <Table.Tr>
+                        <Table.Th style={{ fontSize: '11px' }}>关键词</Table.Th>
+                        <Table.Th style={{ fontSize: '11px', width: '40px' }}>命中</Table.Th>
+                        <Table.Th style={{ fontSize: '11px', width: '40px' }}></Table.Th>
+                      </Table.Tr>
+                    </Table.Thead>
+                    <Table.Tbody>
+                      {learnedRules.map((rule) => (
+                        <Table.Tr key={rule.keyword}>
+                          <Table.Td style={{ fontSize: '11px' }}>{rule.keyword}</Table.Td>
+                          <Table.Td style={{ fontSize: '11px' }}>
+                            <Badge size="xs" variant="light">{rule.hitCount}</Badge>
+                          </Table.Td>
+                          <Table.Td>
+                            <Button
+                              size="compact-xs"
+                              variant="subtle"
+                              color="red"
+                              onClick={() => deleteLearnedRule(rule.keyword)}
+                              styles={{ root: { fontSize: '10px', padding: '0 4px' } }}
+                            >
+                              X
+                            </Button>
+                          </Table.Td>
+                        </Table.Tr>
+                      ))}
+                    </Table.Tbody>
+                  </Table>
+                </ScrollArea>
+                <Group justify="flex-end" mt="xs">
+                  <Button size="compact-xs" color="red" variant="light" onClick={clearAllLearnedRules}>
+                    清空全部
+                  </Button>
+                </Group>
+              </>
+            )}
+          </div>
         </div>
       </Tabs.Panel>
 
