@@ -82,6 +82,13 @@ window.addEventListener('message', (event) => {
             showToast(messages.noApiKeyProvided);
         }
     }
+
+    if (event.data.type === MessageType.URL_CHANGED) {
+        const newVideoId = event.data.videoId;
+        if (newVideoId && newVideoId !== currentVideoId) {
+            handleVideoChange(newVideoId);
+        }
+    }
 });
 
 // ---- Process a video ----
@@ -132,7 +139,7 @@ installXhrInterceptor(async (responseText: string) => {
     }
 });
 
-// ---- URL change monitoring ----
+// ---- URL change monitoring (via background service worker) ----
 
 /** 页面导航时清理所有资源和 DOM 元素 */
 function cleanupForNavigation(): void {
@@ -141,37 +148,23 @@ function cleanupForNavigation(): void {
 }
 
 /**
- * 启动 URL 变化监控，检测 B 站 SPA 内的视频切换
- * 切换时清理旧资源，并尝试从缓存中处理新视频
+ * 处理视频切换逻辑：清理旧资源，尝试从缓存处理新视频
+ * @param newVideoId - 新视频的 BV 号
  */
-function monitorUrlChanges(): void {
-    setInterval(async () => {
-        if (!window.location.pathname.startsWith('/video/')) {
-            return;
-        }
+async function handleVideoChange(newVideoId: string): Promise<void> {
+    console.log('📺 🔄 URL changed:', currentVideoId, '→', newVideoId);
+    cleanupForNavigation();
+    currentVideoId = newVideoId;
 
-        const urlVideoId = getVideoIdFromCurrentPage();
-        if (!urlVideoId || urlVideoId === currentVideoId) {
-            return;
-        }
-
-        console.log('📺 🔄 URL changed:', currentVideoId, '→', urlVideoId);
-        cleanupForNavigation();
-        currentVideoId = urlVideoId;
-
-        if (webResponseCache[urlVideoId]) {
-            console.log('📺 ⚡ Processing from cache:', urlVideoId);
-            await processVideo(webResponseCache[urlVideoId], urlVideoId);
-        } else {
-            console.log('📺 ⏭️ Cache miss for:', urlVideoId, '- cleaned up only');
-        }
-    }, 300);
+    if (webResponseCache[newVideoId]) {
+        console.log('📺 ⚡ Processing from cache:', newVideoId);
+        await processVideo(webResponseCache[newVideoId], newVideoId);
+    } else {
+        console.log('📺 ⏭️ Cache miss for:', newVideoId, '- cleaned up only');
+    }
 }
 
 if (window.location.pathname.startsWith('/video/')) {
     currentVideoId = getVideoIdFromCurrentPage();
     console.log('📺 ✔️ Initial video ID:', currentVideoId);
 }
-
-monitorUrlChanges();
-console.log('📺 ✔️ URL monitoring active');

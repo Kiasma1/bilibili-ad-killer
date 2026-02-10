@@ -14,6 +14,7 @@ const MessageType = {
   REQUEST_CACHE: 'REQUEST_VIDEO_AD_TIMERANGE',
   SEND_CACHE: 'SEND_VIDEO_AD_TIMERANGE',
   SAVE_CACHE: 'SAVE_VIDEO_AD_TIMERANGE',
+  URL_CHANGED: 'BILIBILI_AD_SKIP_URL_CHANGED',
 } as const;
 
 const CACHE_TTL_MS = 3 * 24 * 60 * 60 * 1000;
@@ -159,6 +160,20 @@ injectScript.onload = () => {
       });
 
       await cleanOldCache();
+    }
+  });
+
+  /**
+   * 监听来自 background service worker 的消息
+   * 当 background 检测到 URL 变化时，转发给 inject script
+   */
+  chrome.runtime.onMessage.addListener((message) => {
+    if (message.type === MessageType.URL_CHANGED && message.videoId) {
+      console.log('📺 ✔️ URL change detected by background, forwarding to inject:', message.videoId);
+      window.postMessage({
+        type: MessageType.URL_CHANGED,
+        videoId: message.videoId,
+      }, '*');
     }
   });
 })();

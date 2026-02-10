@@ -16,6 +16,8 @@ export enum MessageType {
     SEND_CACHE = 'SEND_VIDEO_AD_TIMERANGE',
     /** inject script 请求保存广告时间范围到缓存 */
     SAVE_CACHE = 'SAVE_VIDEO_AD_TIMERANGE',
+    /** background 检测到 URL 变化，通知 inject script 视频已切换 */
+    URL_CHANGED = 'BILIBILI_AD_SKIP_URL_CHANGED',
 }
 
 // ---- Timing constants (milliseconds unless noted) ----
