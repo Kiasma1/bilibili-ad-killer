@@ -67,7 +67,6 @@ async function detectWithSubtitles(
     const hitTimes = matchAdByRegex(textsForRegex, learnedRules);
 
     if (hitTimes.length > 0) {
-        console.log(`📺 🔍 Local regex hit ${hitTimes.length} subtitle(s), zero-token detection`);
         // Find the contiguous ad range from hit subtitles
         const hitSubtitles = subtitles.filter(sub =>
             hitTimes.some(t => Math.abs(sub.from - t) < 1)
@@ -75,7 +74,13 @@ async function detectWithSubtitles(
         if (hitSubtitles.length > 0) {
             const startTime = Math.min(...hitSubtitles.map(s => s.from));
             const endTime = Math.max(...hitSubtitles.map(s => s.to));
-            return { startTime, endTime };
+            const duration = endTime - startTime;
+
+            if (duration >= 30) {
+                console.log(`📺 🔍 Local regex hit: ${duration}s range (≥30s), likely ad, using directly`);
+                return { startTime, endTime };
+            }
+            console.log(`📺 🔍 Local regex hit: ${duration}s range (<30s), too short, forwarding to AI`);
         }
     }
 
@@ -216,7 +221,7 @@ export async function detectAdFromVideo(
     console.log('📺 🤖 Check Gemini connectivity', connectivity);
 
     // Determine route: subtitles or danmaku fallback
-    const hasSubtitles = response.data?.subtitle?.subtitles?.length > 0;
+    const hasSubtitles = (response.data?.subtitle?.subtitles?.length ?? 0) > 0;
 
     if (hasSubtitles) {
         // Route A: Subtitle-based detection
