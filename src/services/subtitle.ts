@@ -62,51 +62,56 @@ async function detectWithSubtitles(
     const videoTitle = window.__INITIAL_STATE__.videoData.title;
     const videoDescription = window.__INITIAL_STATE__.videoData.desc;
 
-    // Local regex pre-screening
+    // Local regex pre-screening with density threshold
+    // A sliding 30s window must contain ≥ 3 hits to be considered a real ad
+    const DENSITY_WINDOW = 30;
+    const DENSITY_THRESHOLD = 3;
+
     const textsForRegex = subtitles.map(sub => ({ time: sub.from, content: sub.content }));
     const hitTimes = matchAdByRegex(textsForRegex, learnedRules);
 
-    if (hitTimes.length > 0) {
-        // Collect all hit subtitles and expand each hit to include neighboring subtitles
-        // within a small gap (subtitles within 5s of a hit are likely part of the same ad)
-        const GAP_THRESHOLD = 5;
-        const hitSubtitles = subtitles.filter(sub =>
-            hitTimes.some(t => Math.abs(sub.from - t) < 1)
-        );
+    if (hitTimes.length >= DENSITY_THRESHOLD) {
+        // Sort hit times
+        const sorted = [...hitTimes].sort((a, b) => a - b);
 
-        if (hitSubtitles.length > 0) {
-            // Sort by time
-            hitSubtitles.sort((a, b) => a.from - b.from);
+        // Sliding window: find windows with ≥ DENSITY_THRESHOLD hits
+        let bestStart = -1;
+        let bestEnd = -1;
+        let bestCount = 0;
 
-            // Group into contiguous segments (gap between consecutive hits ≤ threshold)
-            const segments: Array<{ startTime: number; endTime: number }> = [];
-            let segStart = hitSubtitles[0].from;
-            let segEnd = hitSubtitles[0].to;
-
-            for (let i = 1; i < hitSubtitles.length; i++) {
-                if (hitSubtitles[i].from - segEnd <= GAP_THRESHOLD) {
-                    segEnd = Math.max(segEnd, hitSubtitles[i].to);
-                } else {
-                    segments.push({ startTime: segStart, endTime: segEnd });
-                    segStart = hitSubtitles[i].from;
-                    segEnd = hitSubtitles[i].to;
-                }
+        for (let i = 0; i < sorted.length; i++) {
+            const windowStart = sorted[i];
+            const windowEnd = windowStart + DENSITY_WINDOW;
+            // Count hits within this window
+            let count = 0;
+            let lastInWindow = i;
+            for (let j = i; j < sorted.length && sorted[j] <= windowEnd; j++) {
+                count++;
+                lastInWindow = j;
             }
-            segments.push({ startTime: segStart, endTime: segEnd });
-
-            // Find the longest segment that is ≥ 30s
-            const longSegment = segments
-                .filter(s => s.endTime - s.startTime >= 30)
-                .sort((a, b) => (b.endTime - b.startTime) - (a.endTime - a.startTime))[0];
-
-            if (longSegment) {
-                const duration = longSegment.endTime - longSegment.startTime;
-                console.log(`📺 🔍 Local regex hit: ${duration}s segment (≥30s), likely ad, using directly`);
-                return longSegment;
+            if (count >= DENSITY_THRESHOLD && count > bestCount) {
+                bestCount = count;
+                bestStart = sorted[i];
+                bestEnd = sorted[lastInWindow];
             }
-
-            console.log(`📺 🔍 Local regex hit ${segments.length} segment(s), all <30s, forwarding to AI`);
         }
+
+        if (bestStart >= 0) {
+            // Expand to full subtitle boundaries
+            const adSubtitles = subtitles.filter(
+                sub => sub.from >= bestStart && sub.from <= bestEnd + DENSITY_WINDOW
+            );
+            if (adSubtitles.length > 0) {
+                const startTime = Math.min(...adSubtitles.map(s => s.from));
+                const endTime = Math.max(...adSubtitles.map(s => s.to));
+                console.log(`📺 🔍 Regex density hit: ${bestCount} hits in ${DENSITY_WINDOW}s window, range ${startTime}-${endTime}s`);
+                return { startTime, endTime };
+            }
+        }
+
+        console.log(`📺 🔍 Regex hit ${hitTimes.length} subtitle(s) but no dense window, forwarding to AI`);
+    } else if (hitTimes.length > 0) {
+        console.log(`📺 🔍 Regex hit ${hitTimes.length} subtitle(s), below density threshold (${DENSITY_THRESHOLD}), ignoring`);
     }
 
     // Compress subtitles before sending to AI
