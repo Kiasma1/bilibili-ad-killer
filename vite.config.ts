@@ -81,13 +81,28 @@ export default defineConfig({
           // Build variable declarations mapping imported names to local chunk variables
           // Wrap chunk code in its own IIFE to avoid variable name collisions
           // between chunk locals and inject.js locals (e.g. Google GenAI SDK)
-          const returnProps = importBindings.map(binding => {
+          //
+          // For each import binding (e.g. import{C as te}from"./index.js"):
+          //   - binding.imported = "C" (the exported name from chunk)
+          //   - binding.local = "te" (the variable name inject.js uses)
+          //   - exportPair.local = "T" (the chunk-internal variable for export "C")
+          //
+          // The IIFE returns an object keyed by exported names, valued by chunk locals:
+          //   return { C: T, a: O, ... }
+          // The destructuring maps exported names to inject.js locals:
+          //   var { C: te, a: B, ... } = (function(){ ... return { C: T, a: O, ... } })();
+
+          const returnEntries = importBindings.map(binding => {
             const exportPair = exportPairs.find(ep => ep.exported === binding.imported);
             if (!exportPair) return '';
-            return `${binding.local}:${exportPair.local}`;
+            return `${binding.imported}:${exportPair.local}`;
           }).filter(Boolean).join(',');
 
-          const wrappedChunk = `var{${returnProps}}=(function(){${chunkCode};return{${returnProps}}})();`;
+          const destructEntries = importBindings.map(binding => {
+            return `${binding.imported}:${binding.local}`;
+          }).join(',');
+
+          const wrappedChunk = `var{${destructEntries}}=(function(){${chunkCode};return{${returnEntries}}})();`;
 
           // Replace the import statement with the wrapped chunk
           injectContent = injectContent.replace(importPattern, wrappedChunk);
