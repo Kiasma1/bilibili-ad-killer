@@ -67,20 +67,45 @@ async function detectWithSubtitles(
     const hitTimes = matchAdByRegex(textsForRegex, learnedRules);
 
     if (hitTimes.length > 0) {
-        // Find the contiguous ad range from hit subtitles
+        // Collect all hit subtitles and expand each hit to include neighboring subtitles
+        // within a small gap (subtitles within 5s of a hit are likely part of the same ad)
+        const GAP_THRESHOLD = 5;
         const hitSubtitles = subtitles.filter(sub =>
             hitTimes.some(t => Math.abs(sub.from - t) < 1)
         );
-        if (hitSubtitles.length > 0) {
-            const startTime = Math.min(...hitSubtitles.map(s => s.from));
-            const endTime = Math.max(...hitSubtitles.map(s => s.to));
-            const duration = endTime - startTime;
 
-            if (duration >= 30) {
-                console.log(`📺 🔍 Local regex hit: ${duration}s range (≥30s), likely ad, using directly`);
-                return { startTime, endTime };
+        if (hitSubtitles.length > 0) {
+            // Sort by time
+            hitSubtitles.sort((a, b) => a.from - b.from);
+
+            // Group into contiguous segments (gap between consecutive hits ≤ threshold)
+            const segments: Array<{ startTime: number; endTime: number }> = [];
+            let segStart = hitSubtitles[0].from;
+            let segEnd = hitSubtitles[0].to;
+
+            for (let i = 1; i < hitSubtitles.length; i++) {
+                if (hitSubtitles[i].from - segEnd <= GAP_THRESHOLD) {
+                    segEnd = Math.max(segEnd, hitSubtitles[i].to);
+                } else {
+                    segments.push({ startTime: segStart, endTime: segEnd });
+                    segStart = hitSubtitles[i].from;
+                    segEnd = hitSubtitles[i].to;
+                }
             }
-            console.log(`📺 🔍 Local regex hit: ${duration}s range (<30s), too short, forwarding to AI`);
+            segments.push({ startTime: segStart, endTime: segEnd });
+
+            // Find the longest segment that is ≥ 30s
+            const longSegment = segments
+                .filter(s => s.endTime - s.startTime >= 30)
+                .sort((a, b) => (b.endTime - b.startTime) - (a.endTime - a.startTime))[0];
+
+            if (longSegment) {
+                const duration = longSegment.endTime - longSegment.startTime;
+                console.log(`📺 🔍 Local regex hit: ${duration}s segment (≥30s), likely ad, using directly`);
+                return longSegment;
+            }
+
+            console.log(`📺 🔍 Local regex hit ${segments.length} segment(s), all <30s, forwarding to AI`);
         }
     }
 
