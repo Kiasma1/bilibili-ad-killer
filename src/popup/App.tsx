@@ -37,6 +37,7 @@ const App: React.FC = () => {
   const [newKeyword, setNewKeyword] = useState('');
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editingValue, setEditingValue] = useState('');
+  const [editingIsBuiltin, setEditingIsBuiltin] = useState(false);
   const editInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -176,9 +177,10 @@ const App: React.FC = () => {
     notifications.show({ title: t('keywordsCleared'), message: '', color: 'red', position: 'top-right' });
   };
 
-  const startEditing = (keyword: string) => {
+  const startEditing = (keyword: string, isBuiltin: boolean = false) => {
     setEditingKey(keyword);
     setEditingValue(keyword);
+    setEditingIsBuiltin(isBuiltin);
     setTimeout(() => editInputRef.current?.focus(), 0);
   };
 
@@ -189,15 +191,27 @@ const App: React.FC = () => {
       setEditingKey(null);
       return;
     }
-    if (BUILTIN_KEYWORDS.includes(trimmed) || userKeywords.some(k => k.keyword === trimmed)) {
+    const allExisting = [...BUILTIN_KEYWORDS.filter(k => k !== editingKey), ...userKeywords.map(k => k.keyword)];
+    if (allExisting.includes(trimmed)) {
       notifications.show({ title: t('keywordsExists'), message: `"${trimmed}"`, color: 'yellow', position: 'top-right' });
       return;
     }
-    const updated = userKeywords.map(k =>
-      k.keyword === editingKey ? { ...k, keyword: trimmed } : k
-    );
-    await chrome.storage.local.set({ [USER_KEYWORDS_KEY]: updated });
-    setUserKeywords(updated);
+
+    if (editingIsBuiltin) {
+      // Disable the original builtin keyword and add the new value as a user keyword
+      const newDisabled = [...disabledBuiltin, editingKey];
+      const newUserKws = [...userKeywords, { keyword: trimmed, source: 'user' as const, createdAt: Date.now() }];
+      await chrome.storage.local.set({ [DISABLED_BUILTIN_KEY]: newDisabled, [USER_KEYWORDS_KEY]: newUserKws });
+      setDisabledBuiltin(newDisabled);
+      setUserKeywords(newUserKws);
+    } else {
+      const updated = userKeywords.map(k =>
+        k.keyword === editingKey ? { ...k, keyword: trimmed } : k
+      );
+      await chrome.storage.local.set({ [USER_KEYWORDS_KEY]: updated });
+      setUserKeywords(updated);
+    }
+
     setEditingKey(null);
     notifications.show({ title: t('saved'), message: `"${editingKey}" → "${trimmed}"`, color: 'green', position: 'top-right' });
   };
@@ -368,7 +382,28 @@ const App: React.FC = () => {
                     style={{ padding: '3px 6px', borderRadius: 4, background: 'var(--mantine-color-gray-0)' }}>
                     <Group gap="xs" wrap="nowrap" style={{ flex: 1, minWidth: 0 }}>
                       {sourceBadge('builtin')}
-                      <Text size="xs" truncate style={{ flex: 1 }}>{kw}</Text>
+                      {editingKey === kw ? (
+                        <TextInput
+                          ref={editInputRef}
+                          size="xs"
+                          value={editingValue}
+                          onChange={e => setEditingValue(e.currentTarget.value)}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') confirmEdit();
+                            if (e.key === 'Escape') setEditingKey(null);
+                          }}
+                          onBlur={confirmEdit}
+                          style={{ flex: 1 }}
+                          styles={{ input: { height: 22, minHeight: 22, fontSize: 12, padding: '0 6px' } }}
+                        />
+                      ) : (
+                        <Tooltip label={t('keywordsClickToEdit')} openDelay={500} position="top">
+                          <Text size="xs" truncate style={{ flex: 1, cursor: 'pointer' }}
+                            onClick={() => startEditing(kw, true)}>
+                            {kw}
+                          </Text>
+                        </Tooltip>
+                      )}
                     </Group>
                     <ActionIcon color="red" variant="subtle" size="xs" onClick={() => disableBuiltinKeyword(kw)}>
                       ✕
