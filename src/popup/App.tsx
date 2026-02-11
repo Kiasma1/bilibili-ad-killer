@@ -231,9 +231,6 @@ const App: React.FC = () => {
         <Tabs.Tab value="config">
           {t('configTab')}
         </Tabs.Tab>
-        <Tabs.Tab value="instructions">
-          {t('instructionsTab')}
-        </Tabs.Tab>
         <Tabs.Tab value="keywords">
           {t('keywordsTab')}
         </Tabs.Tab>
@@ -321,32 +318,6 @@ const App: React.FC = () => {
               </Group>
             </Stack>
           </form>
-        </div>
-      </Tabs.Panel>
-
-      <Tabs.Panel value="instructions">
-        <div style={{ padding: '18px'}}>
-          <Text
-            size="sm"
-            fw={600}
-          >
-            {t('howToUse')}
-          </Text>
-          <List size="sm">
-            <List.Item><a href="https://github.com/hh54188/bilibili-ad-killer" target="_blank">English Version</a></List.Item>
-            <List.Item><a href="https://www.v2think.com/ad-killer" target="_blank">中文教程</a></List.Item>
-          </List>
-        </div>
-        <div style={{ padding: '18px'}}>
-          <Text
-            size="sm"
-            fw={600}
-          >
-            {t('sourceCode')}
-          </Text>
-          <List size="sm">
-            <List.Item><a href="https://github.com/hh54188/bilibili-ad-killer" target="_blank">GitHub</a></List.Item>
-          </List>
         </div>
       </Tabs.Panel>
 
