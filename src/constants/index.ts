@@ -18,12 +18,6 @@ export enum MessageType {
     SAVE_CACHE = 'SAVE_VIDEO_AD_TIMERANGE',
     /** background 检测到 URL 变化，通知 inject script 视频已切换 */
     URL_CHANGED = 'BILIBILI_AD_SKIP_URL_CHANGED',
-    /** inject script 请求自学习规则 */
-    REQUEST_LEARNED_RULES = 'REQUEST_LEARNED_RULES',
-    /** content script 发送自学习规则 */
-    SEND_LEARNED_RULES = 'SEND_LEARNED_RULES',
-    /** inject script 请求保存新的自学习规则 */
-    SAVE_LEARNED_RULE = 'SAVE_LEARNED_RULE',
 }
 
 // ---- Timing constants (milliseconds unless noted) ----
@@ -55,10 +49,10 @@ export const ANIMATION_LEAD_TIME_S = 3;
 /** 短于此时长的视频将被忽略（秒，即 5 分钟） */
 export const MIN_VIDEO_DURATION_S = 5 * 60;
 
-/** Gemini AI 广告检测请求的超时时间（毫秒） */
+/** AI 广告检测请求的超时时间（毫秒） */
 export const AI_TIMEOUT_MS = 60 * 1000;
 
-/** Gemini 连通性检查的超时时间（毫秒） */
+/** AI 连通性检查的超时时间（毫秒） */
 export const CONNECTIVITY_TIMEOUT_MS = 15 * 1000;
 
 /** Toast 通知的显示时长（毫秒） */
@@ -97,43 +91,10 @@ export const CSS_CLASSES = {
 /** B 站播放器 API 端点（XHR 拦截器匹配用） */
 export const BILIBILI_PLAYER_API = 'api.bilibili.com/x/player/wbi/v2';
 
-/** B 站弹幕 XML API 端点 */
-export const BILIBILI_DANMAKU_API = 'https://api.bilibili.com/x/v1/dm/list.so';
-
-// ---- Subtitle & Danmaku processing ----
-
-/** 弹幕时间窗口（秒），用于提取命中时间点前后的弹幕 */
-export const DANMAKU_WINDOW_SECONDS = 30;
-
-/** 字幕压缩合并窗口（秒） */
-export const SUBTITLE_MERGE_WINDOW_SECONDS = 30;
-
-/** 自学习规则上限 */
-export const MAX_LEARNED_RULES = 200;
-
-/** 内置广告关键词正则 */
-export const BUILTIN_AD_PATTERNS: RegExp[] = [
-    /[硬软推]广/,
-    /广[告子]/,
-    /恰饭/,
-    /恰烂钱/,
-    /感谢.*赞助/,
-    /本期.*由/,
-    /下[面个].*广告/,
-    /接下来.*恰/,
-    /跳过/,
-    /广告时间/,
-];
-
-/** 语气词过滤列表（用于字幕压缩时过滤纯语气词条目） */
-export const FILLER_WORDS = ['嗯', '啊', '哦', '呃', '那个', '就是', '然后', '所以'];
-
 // ---- Chrome storage keys ----
 
 /** Chrome 本地存储使用的键名 */
 export const STORAGE_KEYS = {
     /** 广告时间范围缓存的存储键 */
     AD_TIME_RANGE_CACHE: 'AD_TIME_RANGE_CACHE',
-    /** 自学习广告规则的存储键 */
-    LEARNED_AD_RULES: 'LEARNED_AD_RULES',
 } as const;

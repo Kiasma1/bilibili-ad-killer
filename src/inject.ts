@@ -1,4 +1,3 @@
-import { GoogleGenAI } from '@google/genai';
 import OpenAI from 'openai';
 import { initializeAdBar, addAnimation, removeAnimation, cleanupDomElements } from './bilibili-ui';
 import { getVideoIdFromCurrentPage } from './util';
@@ -8,8 +7,7 @@ import { MessageType } from './constants';
 import { installXhrInterceptor } from './services/xhr-interceptor';
 import { shouldSkipVideo, detectAdFromVideo } from './services/subtitle';
 import { cleanupManager } from './services/cleanup';
-import { AdTimeRangeCache, BilibiliPlayerResponse, LearnedRule } from './types';
-import { AIClient } from './ai';
+import { AdTimeRangeCache, BilibiliPlayerResponse } from './types';
 
 // ============================================================
 // inject.ts — slim entry point wiring services together
@@ -17,12 +15,10 @@ import { AIClient } from './ai';
 
 /** 当前用户配置（从 content script 接收） */
 let config: UserConfig | null = null;
-/** AI 客户端实例（Gemini 或 DeepSeek） */
-let aiClient: AIClient | null = null;
+/** DeepSeek AI 客户端实例 */
+let aiClient: OpenAI | null = null;
 /** 广告时间范围缓存（从 content script 接收） */
 let adTimeRangeCache: AdTimeRangeCache | null = null;
-/** 自学习广告规则（从 content script 接收） */
-let learnedRules: LearnedRule[] = [];
 
 /** XHR 拦截到的播放器 API 响应缓存，按视频 BV 号索引 */
 const webResponseCache: { [videoBvid: string]: BilibiliPlayerResponse } = {};
@@ -34,7 +30,6 @@ let currentVideoId: string | null = null;
 console.log('📺 ✔️ Inject script ready, signaling to content script');
 window.postMessage({ type: MessageType.READY }, '*');
 window.postMessage({ type: MessageType.REQUEST_CACHE }, '*');
-window.postMessage({ type: MessageType.REQUEST_LEARNED_RULES }, '*');
 
 // ---- Message handling ----
 
@@ -61,11 +56,6 @@ window.addEventListener('message', (event) => {
         console.log('📺 📦 ✔️ Retrieved ad time cache');
     }
 
-    if (event.data.type === MessageType.SEND_LEARNED_RULES) {
-        learnedRules = event.data.data || [];
-        console.log(`📺 🔍 ✔️ Retrieved ${learnedRules.length} learned rules`);
-    }
-
     if (event.data.type === MessageType.CONFIG) {
         const receivedConfig = event.data.config;
         config = receivedConfig;
@@ -76,32 +66,20 @@ window.addEventListener('message', (event) => {
         }
 
         console.log('📺 ⚙️ ✔️ Config received:', {
-            aiProvider: receivedConfig.aiProvider,
-            apiKey: receivedConfig.apiKey,
             deepseekApiKey: receivedConfig.deepseekApiKey,
             aiModel: receivedConfig.aiModel,
             autoSkip: receivedConfig.autoSkip,
             ignoreVideoLessThan5Minutes: receivedConfig.ignoreVideoLessThan5Minutes,
             ignoreVideoMoreThan30Minutes: receivedConfig.ignoreVideoMoreThan30Minutes,
-            usingBrowserAIModel: receivedConfig.usingBrowserAIModel,
         });
 
-        if (receivedConfig.aiProvider === 'deepseek' && receivedConfig.deepseekApiKey) {
-            aiClient = {
-                provider: 'deepseek',
-                client: new OpenAI({
-                    apiKey: receivedConfig.deepseekApiKey,
-                    baseURL: 'https://api.deepseek.com',
-                    dangerouslyAllowBrowser: true,
-                }),
-            };
+        if (receivedConfig.deepseekApiKey) {
+            aiClient = new OpenAI({
+                apiKey: receivedConfig.deepseekApiKey,
+                baseURL: 'https://api.deepseek.com',
+                dangerouslyAllowBrowser: true,
+            });
             console.log('📺 🤖 ✔️ DeepSeek AI initialized');
-        } else if (receivedConfig.apiKey) {
-            aiClient = {
-                provider: 'gemini',
-                client: new GoogleGenAI({ apiKey: receivedConfig.apiKey }),
-            };
-            console.log('📺 🤖 ✔️ Gemini AI initialized');
         } else {
             console.log('📺 🤖 ❌ No API key provided');
             showToast(messages.noApiKeyProvided);
@@ -120,9 +98,6 @@ window.addEventListener('message', (event) => {
 
 /**
  * 处理单个视频的广告检测流程
- * 检查是否应跳过短视频，然后调用 AI 检测广告并初始化广告标记条
- * @param response - B 站播放器 API 的响应数据
- * @param videoId - 当前视频的 BV 号
  */
 async function processVideo(response: BilibiliPlayerResponse, videoId: string): Promise<void> {
     if (config?.ignoreVideoLessThan5Minutes && shouldSkipVideo(true)) {
@@ -130,7 +105,7 @@ async function processVideo(response: BilibiliPlayerResponse, videoId: string): 
     }
 
     const adTimeRange = await detectAdFromVideo(
-        response, videoId, aiClient, config?.aiModel ?? '', adTimeRangeCache, learnedRules
+        response, videoId, aiClient, config?.aiModel ?? '', adTimeRangeCache
     );
 
     if (!adTimeRange) {
@@ -174,7 +149,6 @@ function cleanupForNavigation(): void {
 
 /**
  * 处理视频切换逻辑：清理旧资源，尝试从缓存处理新视频
- * @param newVideoId - 新视频的 BV 号
  */
 async function handleVideoChange(newVideoId: string): Promise<void> {
     console.log('📺 🔄 URL changed:', currentVideoId, '→', newVideoId);
