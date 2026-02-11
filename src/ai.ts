@@ -91,17 +91,23 @@ function buildPrompt(
 
 /**
  * 解析 AI 返回的广告检测 JSON 响应
+ * 返回 AdDetectionResult（有广告）或 null（无广告），undefined 表示解析失败
  */
-function parseResponse(responseText: string): AdDetectionResult | undefined {
+function parseResponse(responseText: string): AdDetectionResult | null | undefined {
     const parsed = JSON.parse(responseText);
-    if (!parsed || !parsed.startTime || !parsed.endTime) {
+    if (!parsed || (parsed.startTime === 0 && parsed.endTime === 0)) {
         console.log('📺 🤖 No ad found');
-        return undefined;
+        return null;
+    }
+
+    if (!parsed.startTime || !parsed.endTime) {
+        console.log('📺 🤖 No ad found (missing fields)');
+        return null;
     }
 
     if (parsed.startTime < 0 || parsed.endTime < 0 || parsed.startTime >= parsed.endTime) {
         console.log('📺 🤖 Invalid ad time range', parsed);
-        return undefined;
+        return null;
     }
 
     parsed.startTime = parseFloat(parsed.startTime);
@@ -128,8 +134,9 @@ function parseResponse(responseText: string): AdDetectionResult | undefined {
 
 /**
  * 使用 DeepSeek AI 分析字幕内容，识别视频中的广告时间段
+ * 返回 AdDetectionResult（有广告）、null（无广告）、undefined（请求失败）
  */
-export async function identifyAdTimeRange(options: IdentifyAdTimeRangeOptions): Promise<AdDetectionResult | undefined> {
+export async function identifyAdTimeRange(options: IdentifyAdTimeRangeOptions): Promise<AdDetectionResult | null | undefined> {
     const { client, subStr, aiModel, videoTitle, videoDescription } = options;
 
     if (!client || !aiModel) {
@@ -163,23 +170,5 @@ export async function identifyAdTimeRange(options: IdentifyAdTimeRangeOptions): 
         console.log('📺 🤖 ❌ Failed to reach AI service, message:', err);
         showToast(messages.aiServiceFailed);
         return undefined;
-    }
-}
-
-/**
- * 检查 DeepSeek AI 服务的连通性
- */
-export async function checkAIConnectivity(client: OpenAI, aiModel: string): Promise<string | undefined> {
-    try {
-        const response = await client.chat.completions.create({
-            model: aiModel,
-            messages: [{ role: 'user', content: 'Hi' }],
-            max_tokens: 10,
-        }, { timeout: CONNECTIVITY_TIMEOUT_MS });
-        return response.choices[0]?.message?.content ?? undefined;
-    } catch (err) {
-        console.log('📺 🤖 ❌ Failed to reach AI service, message:', err);
-        showToast(messages.aiServiceFailed);
-        throw err;
     }
 }

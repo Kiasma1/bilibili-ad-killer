@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import { checkAIConnectivity, identifyAdTimeRange } from '../ai';
+import { identifyAdTimeRange } from '../ai';
 import { addAnimation, removeAnimation } from '../bilibili-ui';
 import { MessageType, MIN_VIDEO_DURATION_S, WARNING_DISPLAY_MS } from '../constants';
 import { warningAnimation } from '../style';
@@ -81,13 +81,30 @@ async function detectWithSubtitles(
         });
         removeAnimation();
 
+        // result: AdDetectionResult (有广告), null (无广告), undefined (请求失败)
+        // 只有 undefined 时不缓存（下次重试），null 和有广告都缓存
+        if (result === null) {
+            // 无广告 — 缓存 {0, 0} 避免重复请求
+            window.postMessage({ type: MessageType.SAVE_CACHE, data: {
+                videoId: window.__INITIAL_STATE__?.bvid || '',
+                startTime: 0, endTime: 0,
+            } }, '*');
+            console.log('📺 🤖 No ad found, cached as no-ad');
+            return null;
+        }
+
+        if (result === undefined) {
+            // 请求失败 — 不缓存，下次重试
+            return null;
+        }
+
         // 广告商自动学习
-        if (result?.advertiser) {
+        if (result.advertiser) {
             window.postMessage({ type: MessageType.SAVE_KEYWORD, data: { keyword: result.advertiser } }, '*');
             showToast(`已学习新关键词: ${result.advertiser}`);
         }
 
-        return result ?? null;
+        return result;
     } catch (error) {
         console.error('📺 🤖 ❌ Error identifying ad time range:', error);
         removeAnimation();
@@ -115,10 +132,14 @@ export async function detectAdFromVideo(
         return null;
     }
 
-    // Check cache first
+    // Check cache first (includes "no ad" cache entries with startTime=0, endTime=0)
     console.log('📺 📦 ✔️ Video ID:', videoId);
     if (cache && videoId && cache[videoId]) {
         const cached = cache[videoId];
+        if (cached.startTime === 0 && cached.endTime === 0) {
+            console.log('📺 📦 ✔️ Cache hit: no ad for video:', videoId);
+            return null;
+        }
         console.log('📺 📦 ✔️ Cache hit for video:', videoId, cached);
         return { startTime: cached.startTime, endTime: cached.endTime };
     }
@@ -127,14 +148,6 @@ export async function detectAdFromVideo(
     // Verify AI client is ready
     if (!client || !aiModel) {
         console.error('📺 🤖 ❌ AI client not initialized');
-        return null;
-    }
-
-    try {
-        const connectivity = await checkAIConnectivity(client, aiModel);
-        console.log('📺 🤖 Check AI connectivity', connectivity);
-    } catch {
-        console.error('📺 🤖 ❌ AI connectivity check failed');
         return null;
     }
 
