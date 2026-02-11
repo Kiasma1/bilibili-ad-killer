@@ -159,5 +159,17 @@
   },
   "keywordsClickToEdit": {
     "message": "Click to edit"
+  },
+  "transcriptTab": {
+    "message": "Transcript"
+  },
+  "transcriptEmpty": {
+    "message": "No subtitles available. Open a Bilibili video first."
+  },
+  "transcriptCopy": {
+    "message": "Copy"
+  },
+  "transcriptCopied": {
+    "message": "Copied to clipboard"
   }
 }

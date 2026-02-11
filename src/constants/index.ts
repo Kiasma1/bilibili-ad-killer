@@ -24,6 +24,8 @@ export enum MessageType {
     SEND_KEYWORDS = 'SEND_KEYWORDS',
     /** inject script 请求保存新关键词到词库 */
     SAVE_KEYWORD = 'SAVE_KEYWORD',
+    /** inject script 发送字幕数据给 content script 存储 */
+    SAVE_SUBTITLES = 'SAVE_SUBTITLES',
 }
 
 // ---- Timing constants (milliseconds unless noted) ----
@@ -110,4 +112,6 @@ export const STORAGE_KEYS = {
     USER_KEYWORDS: 'USER_KEYWORDS',
     /** 用户禁用的内置关键词列表 */
     DISABLED_BUILTIN_KEYWORDS: 'DISABLED_BUILTIN_KEYWORDS',
+    /** 当前视频字幕数据 */
+    CURRENT_SUBTITLES: 'CURRENT_SUBTITLES',
 } as const;

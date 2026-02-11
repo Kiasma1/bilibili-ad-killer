@@ -18,11 +18,13 @@ const MessageType = {
   REQUEST_KEYWORDS: 'REQUEST_KEYWORDS',
   SEND_KEYWORDS: 'SEND_KEYWORDS',
   SAVE_KEYWORD: 'SAVE_KEYWORD',
+  SAVE_SUBTITLES: 'SAVE_SUBTITLES',
 } as const;
 
 const CACHE_TTL_MS = 3 * 24 * 60 * 60 * 1000;
 const AD_TIME_RANGE_CACHE_KEY = 'AD_TIME_RANGE_CACHE';
 const USER_KEYWORDS_KEY = 'USER_KEYWORDS';
+const CURRENT_SUBTITLES_KEY = 'CURRENT_SUBTITLES';
 
 const DISABLED_BUILTIN_KEYWORDS_KEY = 'DISABLED_BUILTIN_KEYWORDS';
 
@@ -178,6 +180,12 @@ injectScript.onload = () => {
         await chrome.storage.local.set({ [USER_KEYWORDS_KEY]: existing });
         console.log(`📺 📖 ✔️ Saved new keyword: "${keyword}"`);
       }
+    }
+
+    if (event.data.type === MessageType.SAVE_SUBTITLES) {
+      const { videoId, subtitles } = event.data.data;
+      await chrome.storage.local.set({ [CURRENT_SUBTITLES_KEY]: { videoId, subtitles } });
+      console.log(`📺 📝 ✔️ Saved ${subtitles.length} subtitles for ${videoId}`);
     }
   });
 

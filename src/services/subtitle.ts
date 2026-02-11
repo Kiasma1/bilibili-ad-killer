@@ -164,5 +164,8 @@ export async function detectAdFromVideo(
     const jsonRes: SubtitleFileResponse = await (await fetch(fullUrl)).json();
     const subtitles: BilibiliSubtitle[] = jsonRes.body;
 
+    // Save subtitles for popup transcript tab
+    window.postMessage({ type: MessageType.SAVE_SUBTITLES, data: { videoId, subtitles } }, '*');
+
     return detectWithSubtitles(subtitles, client, aiModel, userKeywords, disabledBuiltinKeywords);
 }

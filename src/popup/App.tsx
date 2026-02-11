@@ -24,6 +24,13 @@ interface UserKeyword {
 
 const USER_KEYWORDS_KEY = 'USER_KEYWORDS';
 const DISABLED_BUILTIN_KEY = 'DISABLED_BUILTIN_KEYWORDS';
+const CURRENT_SUBTITLES_KEY = 'CURRENT_SUBTITLES';
+
+interface SubtitleEntry {
+  from: number;
+  to: number;
+  content: string;
+}
 
 const App: React.FC = () => {
   const { t } = useI18n();
@@ -39,6 +46,10 @@ const App: React.FC = () => {
   const [editingValue, setEditingValue] = useState('');
   const [editingIsBuiltin, setEditingIsBuiltin] = useState(false);
   const editInputRef = useRef<HTMLInputElement>(null);
+
+  // Transcript state
+  const [subtitles, setSubtitles] = useState<SubtitleEntry[]>([]);
+  const [subtitleVideoId, setSubtitleVideoId] = useState<string>('');
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -134,6 +145,32 @@ const App: React.FC = () => {
   };
 
   useEffect(() => { loadKeywords(); }, []);
+
+  // ---- Transcript logic ----
+
+  useEffect(() => {
+    const loadSubtitles = async () => {
+      const result = await chrome.storage.local.get(CURRENT_SUBTITLES_KEY);
+      const data = result[CURRENT_SUBTITLES_KEY];
+      if (data) {
+        setSubtitles(data.subtitles || []);
+        setSubtitleVideoId(data.videoId || '');
+      }
+    };
+    loadSubtitles();
+  }, []);
+
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = Math.floor(seconds % 60);
+    return `${m}:${String(s).padStart(2, '0')}`;
+  };
+
+  const copyTranscript = async () => {
+    const text = subtitles.map(s => `[${formatTime(s.from)}] ${s.content}`).join('\n');
+    await navigator.clipboard.writeText(text);
+    notifications.show({ title: t('transcriptCopied'), message: '', color: 'green', position: 'top-right' });
+  };
 
   const activeBuiltinKeywords = BUILTIN_KEYWORDS.filter(k => !disabledBuiltin.includes(k));
 
@@ -233,6 +270,9 @@ const App: React.FC = () => {
         </Tabs.Tab>
         <Tabs.Tab value="keywords">
           {t('keywordsTab')}
+        </Tabs.Tab>
+        <Tabs.Tab value="transcript">
+          {t('transcriptTab')}
         </Tabs.Tab>
       </Tabs.List>
 
@@ -416,6 +456,33 @@ const App: React.FC = () => {
                 ))}
               </Stack>
             </ScrollArea>
+          </Stack>
+        </div>
+      </Tabs.Panel>
+
+      <Tabs.Panel value="transcript">
+        <div style={{ padding: '12px' }}>
+          <Stack gap="xs">
+            {subtitles.length > 0 ? (
+              <>
+                <Group justify="space-between">
+                  <Text size="xs" c="dimmed">{subtitleVideoId} ({subtitles.length})</Text>
+                  <Button size="xs" variant="light" onClick={copyTranscript}>{t('transcriptCopy')}</Button>
+                </Group>
+                <ScrollArea h={300}>
+                  <Stack gap={2}>
+                    {subtitles.map((s, i) => (
+                      <Group key={i} gap={6} wrap="nowrap" align="flex-start" style={{ padding: '2px 0' }}>
+                        <Text size="xs" c="dimmed" style={{ whiteSpace: 'nowrap', minWidth: 36 }}>{formatTime(s.from)}</Text>
+                        <Text size="xs" style={{ lineHeight: 1.4 }}>{s.content}</Text>
+                      </Group>
+                    ))}
+                  </Stack>
+                </ScrollArea>
+              </>
+            ) : (
+              <Text size="xs" c="dimmed" ta="center" py="xl">{t('transcriptEmpty')}</Text>
+            )}
           </Stack>
         </div>
       </Tabs.Panel>

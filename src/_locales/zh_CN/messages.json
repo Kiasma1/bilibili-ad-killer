@@ -159,5 +159,17 @@
   },
   "keywordsClickToEdit": {
     "message": "点击编辑"
+  },
+  "transcriptTab": {
+    "message": "逐字稿"
+  },
+  "transcriptEmpty": {
+    "message": "暂无字幕，请先打开一个B站视频"
+  },
+  "transcriptCopy": {
+    "message": "复制"
+  },
+  "transcriptCopied": {
+    "message": "已复制到剪贴板"
   }
 }
