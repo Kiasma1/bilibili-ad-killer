@@ -114,5 +114,47 @@
   },
   "sourceCode": {
     "message": "源代码"
+  },
+  "keywordsTab": {
+    "message": "关键词"
+  },
+  "keywordsBuiltin": {
+    "message": "内置"
+  },
+  "keywordsAi": {
+    "message": "AI 学习"
+  },
+  "keywordsUser": {
+    "message": "手动添加"
+  },
+  "keywordsAddPlaceholder": {
+    "message": "输入新关键词..."
+  },
+  "keywordsAdd": {
+    "message": "添加"
+  },
+  "keywordsClearUser": {
+    "message": "清空用户词库"
+  },
+  "keywordsResetBuiltin": {
+    "message": "恢复内置"
+  },
+  "keywordsTotal": {
+    "message": "词库列表"
+  },
+  "keywordsExists": {
+    "message": "该关键词已存在"
+  },
+  "keywordsAdded": {
+    "message": "已添加"
+  },
+  "keywordsDeleted": {
+    "message": "已删除"
+  },
+  "keywordsCleared": {
+    "message": "已清空用户词库"
+  },
+  "keywordsBuiltinRestored": {
+    "message": "已恢复所有内置关键词"
   }
 }

@@ -6,7 +6,7 @@ import { BilibiliSubtitle, UserKeyword } from '../types';
 // ============================================================
 
 /** 内置广告敏感词库 */
-const BUILTIN_KEYWORDS: string[] = [
+export const BUILTIN_KEYWORDS: string[] = [
     '感谢', '赞助', '链接', '下单', '折扣', '领券',
     '金主爸爸', '点击下方', '简介区', '防不胜防',
     '恰饭', '推广', '广告', '甚至还有',
@@ -28,10 +28,12 @@ export interface FilterResult {
 export function filterSubtitles(
     subtitles: BilibiliSubtitle[],
     userKeywords: UserKeyword[],
+    disabledBuiltinKeywords: string[] = [],
 ): FilterResult {
-    // 合并内置词库 + 用户词库
+    // 合并内置词库（排除禁用的） + 用户词库
+    const activeBuiltin = BUILTIN_KEYWORDS.filter(k => !disabledBuiltinKeywords.includes(k));
     const allKeywords = [
-        ...BUILTIN_KEYWORDS,
+        ...activeBuiltin,
         ...userKeywords.map(k => k.keyword),
     ];
 

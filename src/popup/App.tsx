@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Switch, Select, PasswordInput, Button, Stack, Group, Divider, Text, List } from '@mantine/core';
+import { Switch, Select, PasswordInput, Button, Stack, Group, Divider, Text, List, TextInput, Badge, ActionIcon, ScrollArea } from '@mantine/core';
 import { Tabs } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
 import { useI18n } from '../hooks/useI18n';
 import { DEFAULT_CONFIG } from '../config';
+import { BUILTIN_KEYWORDS } from '../services/keyword-filter';
 import './App.css';
 
 /** 配置表单的数据结构 */
@@ -15,11 +16,25 @@ interface ConfigForm {
   deepseekApiKey: string;
 }
 
+interface UserKeyword {
+  keyword: string;
+  source: 'builtin' | 'ai' | 'user';
+  createdAt: number;
+}
+
+const USER_KEYWORDS_KEY = 'USER_KEYWORDS';
+const DISABLED_BUILTIN_KEY = 'DISABLED_BUILTIN_KEYWORDS';
+
 const App: React.FC = () => {
   const { t } = useI18n();
   const [autoSkip, setAutoSkip] = useState<boolean>(DEFAULT_CONFIG.autoSkip);
   const [ignoreVideoLessThan5Minutes, setignoreVideoLessThan5Minutes] = useState<boolean>(DEFAULT_CONFIG.ignoreVideoLessThan5Minutes);
   const [ignoreVideoMoreThan30Minutes, setIgnoreVideoMoreThan30Minutes] = useState<boolean>(DEFAULT_CONFIG.ignoreVideoMoreThan30Minutes);
+
+  // Keywords state
+  const [userKeywords, setUserKeywords] = useState<UserKeyword[]>([]);
+  const [disabledBuiltin, setDisabledBuiltin] = useState<string[]>([]);
+  const [newKeyword, setNewKeyword] = useState('');
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -106,6 +121,67 @@ const App: React.FC = () => {
     showSuccessNotification(t('refreshToApply'));
   };
 
+  // ---- Keywords logic ----
+
+  const loadKeywords = async () => {
+    const result = await chrome.storage.local.get([USER_KEYWORDS_KEY, DISABLED_BUILTIN_KEY]);
+    setUserKeywords(result[USER_KEYWORDS_KEY] || []);
+    setDisabledBuiltin(result[DISABLED_BUILTIN_KEY] || []);
+  };
+
+  useEffect(() => { loadKeywords(); }, []);
+
+  const activeBuiltinKeywords = BUILTIN_KEYWORDS.filter(k => !disabledBuiltin.includes(k));
+
+  const addKeyword = async () => {
+    const trimmed = newKeyword.trim();
+    if (!trimmed) return;
+    if (BUILTIN_KEYWORDS.includes(trimmed) || userKeywords.some(k => k.keyword === trimmed)) {
+      notifications.show({ title: t('keywordsExists'), message: `"${trimmed}"`, color: 'yellow', position: 'top-right' });
+      return;
+    }
+    const updated = [...userKeywords, { keyword: trimmed, source: 'user' as const, createdAt: Date.now() }];
+    await chrome.storage.local.set({ [USER_KEYWORDS_KEY]: updated });
+    setUserKeywords(updated);
+    setNewKeyword('');
+    notifications.show({ title: t('keywordsAdded'), message: `"${trimmed}"`, color: 'green', position: 'top-right' });
+  };
+
+  const deleteUserKeyword = async (keyword: string) => {
+    const updated = userKeywords.filter(k => k.keyword !== keyword);
+    await chrome.storage.local.set({ [USER_KEYWORDS_KEY]: updated });
+    setUserKeywords(updated);
+    notifications.show({ title: t('keywordsDeleted'), message: `"${keyword}"`, color: 'red', position: 'top-right' });
+  };
+
+  const disableBuiltinKeyword = async (keyword: string) => {
+    const updated = [...disabledBuiltin, keyword];
+    await chrome.storage.local.set({ [DISABLED_BUILTIN_KEY]: updated });
+    setDisabledBuiltin(updated);
+    notifications.show({ title: t('keywordsDeleted'), message: `"${keyword}"`, color: 'red', position: 'top-right' });
+  };
+
+  const resetBuiltin = async () => {
+    await chrome.storage.local.set({ [DISABLED_BUILTIN_KEY]: [] });
+    setDisabledBuiltin([]);
+    notifications.show({ title: t('keywordsBuiltinRestored'), message: '', color: 'green', position: 'top-right' });
+  };
+
+  const clearUserKeywords = async () => {
+    await chrome.storage.local.set({ [USER_KEYWORDS_KEY]: [] });
+    setUserKeywords([]);
+    notifications.show({ title: t('keywordsCleared'), message: '', color: 'red', position: 'top-right' });
+  };
+
+  const sourceBadge = (source: string) => {
+    switch (source) {
+      case 'builtin': return <Badge color="gray" size="xs">{t('keywordsBuiltin')}</Badge>;
+      case 'ai': return <Badge color="blue" size="xs">{t('keywordsAi')}</Badge>;
+      case 'user': return <Badge color="green" size="xs">{t('keywordsUser')}</Badge>;
+      default: return null;
+    }
+  };
+
   return (
     <Tabs defaultValue="config" styles={{ tabLabel: { fontSize: "13px" } }}>
       <Tabs.List>
@@ -114,6 +190,9 @@ const App: React.FC = () => {
         </Tabs.Tab>
         <Tabs.Tab value="instructions">
           {t('instructionsTab')}
+        </Tabs.Tab>
+        <Tabs.Tab value="keywords">
+          {t('keywordsTab')}
         </Tabs.Tab>
       </Tabs.List>
 
@@ -225,6 +304,61 @@ const App: React.FC = () => {
           <List size="sm">
             <List.Item><a href="https://github.com/hh54188/bilibili-ad-killer" target="_blank">GitHub</a></List.Item>
           </List>
+        </div>
+      </Tabs.Panel>
+
+      <Tabs.Panel value="keywords">
+        <div style={{ padding: '12px' }}>
+          <Stack gap="xs">
+            <Group gap="xs">
+              <TextInput
+                placeholder={t('keywordsAddPlaceholder')}
+                value={newKeyword}
+                onChange={e => setNewKeyword(e.currentTarget.value)}
+                onKeyDown={e => e.key === 'Enter' && addKeyword()}
+                style={{ flex: 1 }}
+                size="xs"
+              />
+              <Button size="xs" onClick={addKeyword}>{t('keywordsAdd')}</Button>
+            </Group>
+            <Group gap="xs">
+              {disabledBuiltin.length > 0 && (
+                <Button size="xs" variant="light" onClick={resetBuiltin}>{t('keywordsResetBuiltin')}</Button>
+              )}
+              {userKeywords.length > 0 && (
+                <Button size="xs" color="red" variant="light" onClick={clearUserKeywords}>{t('keywordsClearUser')}</Button>
+              )}
+            </Group>
+            <Text size="xs" c="dimmed">
+              {t('keywordsTotal')} ({activeBuiltinKeywords.length + userKeywords.length})
+            </Text>
+            <ScrollArea h={260}>
+              <Stack gap={4}>
+                {activeBuiltinKeywords.map(kw => (
+                  <Group key={`b-${kw}`} gap="xs" justify="space-between" wrap="nowrap" style={{ padding: '2px 0' }}>
+                    <Group gap="xs" wrap="nowrap">
+                      {sourceBadge('builtin')}
+                      <Text size="xs" truncate>{kw}</Text>
+                    </Group>
+                    <ActionIcon color="red" variant="subtle" size="xs" onClick={() => disableBuiltinKeyword(kw)}>
+                      ✕
+                    </ActionIcon>
+                  </Group>
+                ))}
+                {userKeywords.map(kw => (
+                  <Group key={`u-${kw.keyword}`} gap="xs" justify="space-between" wrap="nowrap" style={{ padding: '2px 0' }}>
+                    <Group gap="xs" wrap="nowrap">
+                      {sourceBadge(kw.source)}
+                      <Text size="xs" truncate>{kw.keyword}</Text>
+                    </Group>
+                    <ActionIcon color="red" variant="subtle" size="xs" onClick={() => deleteUserKeyword(kw.keyword)}>
+                      ✕
+                    </ActionIcon>
+                  </Group>
+                ))}
+              </Stack>
+            </ScrollArea>
+          </Stack>
         </div>
       </Tabs.Panel>
 

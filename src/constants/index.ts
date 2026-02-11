@@ -108,4 +108,6 @@ export const STORAGE_KEYS = {
     AD_TIME_RANGE_CACHE: 'AD_TIME_RANGE_CACHE',
     /** 用户词库的存储键 */
     USER_KEYWORDS: 'USER_KEYWORDS',
+    /** 用户禁用的内置关键词列表 */
+    DISABLED_BUILTIN_KEYWORDS: 'DISABLED_BUILTIN_KEYWORDS',
 } as const;

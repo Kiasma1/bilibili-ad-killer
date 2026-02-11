@@ -24,6 +24,8 @@ const CACHE_TTL_MS = 3 * 24 * 60 * 60 * 1000;
 const AD_TIME_RANGE_CACHE_KEY = 'AD_TIME_RANGE_CACHE';
 const USER_KEYWORDS_KEY = 'USER_KEYWORDS';
 
+const DISABLED_BUILTIN_KEYWORDS_KEY = 'DISABLED_BUILTIN_KEYWORDS';
+
 const DEFAULT_CONFIG = {
   deepseekApiKey: '',
   aiModel: 'deepseek-chat',
@@ -164,7 +166,8 @@ injectScript.onload = () => {
 
     if (event.data.type === MessageType.REQUEST_KEYWORDS) {
       const kws = (await chrome.storage.local.get(USER_KEYWORDS_KEY))[USER_KEYWORDS_KEY] || [];
-      window.postMessage({ type: MessageType.SEND_KEYWORDS, data: kws }, '*');
+      const disabled = (await chrome.storage.local.get(DISABLED_BUILTIN_KEYWORDS_KEY))[DISABLED_BUILTIN_KEYWORDS_KEY] || [];
+      window.postMessage({ type: MessageType.SEND_KEYWORDS, data: kws, disabledBuiltin: disabled }, '*');
     }
 
     if (event.data.type === MessageType.SAVE_KEYWORD) {

@@ -114,5 +114,47 @@
   },
   "sourceCode": {
     "message": "Source Code"
+  },
+  "keywordsTab": {
+    "message": "Keywords"
+  },
+  "keywordsBuiltin": {
+    "message": "Built-in"
+  },
+  "keywordsAi": {
+    "message": "AI Learned"
+  },
+  "keywordsUser": {
+    "message": "Manual"
+  },
+  "keywordsAddPlaceholder": {
+    "message": "Enter new keyword..."
+  },
+  "keywordsAdd": {
+    "message": "Add"
+  },
+  "keywordsClearUser": {
+    "message": "Clear User Keywords"
+  },
+  "keywordsResetBuiltin": {
+    "message": "Reset Built-in"
+  },
+  "keywordsTotal": {
+    "message": "Keyword List"
+  },
+  "keywordsExists": {
+    "message": "Keyword already exists"
+  },
+  "keywordsAdded": {
+    "message": "Added"
+  },
+  "keywordsDeleted": {
+    "message": "Deleted"
+  },
+  "keywordsCleared": {
+    "message": "User keywords cleared"
+  },
+  "keywordsBuiltinRestored": {
+    "message": "Built-in keywords restored"
   }
 }

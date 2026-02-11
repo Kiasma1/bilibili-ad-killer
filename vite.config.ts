@@ -106,7 +106,9 @@ export default defineConfig({
           const wrappedChunk = `var{${destructEntries}}=(function(){${chunkCode};return{${returnEntries}}})();`;
 
           // Replace the import statement with the wrapped chunk
-          injectContent = injectContent.replace(importPattern, wrappedChunk);
+          // Use function form of replace to avoid $& and $` special patterns
+          // in the replacement string (chunk code may contain regex like "\\$&")
+          injectContent = injectContent.replace(importPattern, () => wrappedChunk);
 
           console.log(`✅ Inlined ${chunkFile} into inject.js`);
         }

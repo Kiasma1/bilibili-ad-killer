@@ -21,6 +21,8 @@ let aiClient: OpenAI | null = null;
 let adTimeRangeCache: AdTimeRangeCache | null = null;
 /** 用户词库（从 content script 接收） */
 let userKeywords: UserKeyword[] = [];
+/** 用户禁用的内置关键词（从 content script 接收） */
+let disabledBuiltinKeywords: string[] = [];
 
 /** XHR 拦截到的播放器 API 响应缓存，按视频 BV 号索引 */
 const webResponseCache: { [videoBvid: string]: BilibiliPlayerResponse } = {};
@@ -61,7 +63,8 @@ window.addEventListener('message', (event) => {
 
     if (event.data.type === MessageType.SEND_KEYWORDS) {
         userKeywords = event.data.data || [];
-        console.log(`📺 📖 ✔️ Retrieved ${userKeywords.length} user keywords`);
+        disabledBuiltinKeywords = event.data.disabledBuiltin || [];
+        console.log(`📺 📖 ✔️ Retrieved ${userKeywords.length} user keywords, ${disabledBuiltinKeywords.length} disabled builtin`);
     }
 
     if (event.data.type === MessageType.CONFIG) {
@@ -113,7 +116,7 @@ async function processVideo(response: BilibiliPlayerResponse, videoId: string): 
     }
 
     const adTimeRange = await detectAdFromVideo(
-        response, videoId, aiClient, config?.aiModel ?? '', adTimeRangeCache, userKeywords
+        response, videoId, aiClient, config?.aiModel ?? '', adTimeRangeCache, userKeywords, disabledBuiltinKeywords
     );
 
     if (!adTimeRange) {

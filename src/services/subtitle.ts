@@ -50,12 +50,13 @@ async function detectWithSubtitles(
     client: OpenAI,
     aiModel: string,
     userKeywords: UserKeyword[],
+    disabledBuiltinKeywords: string[],
 ): Promise<AdTimeRange | null> {
     const videoTitle = window.__INITIAL_STATE__.videoData.title;
     const videoDescription = window.__INITIAL_STATE__.videoData.desc;
 
     // 阶段 1：正则预筛
-    const filterResult = filterSubtitles(subtitles, userKeywords);
+    const filterResult = filterSubtitles(subtitles, userKeywords, disabledBuiltinKeywords);
 
     // 阶段 2：决定发什么给 AI
     const targetSubtitles = filterResult.hit
@@ -104,6 +105,7 @@ export async function detectAdFromVideo(
     aiModel: string,
     cache: AdTimeRangeCache | null,
     userKeywords: UserKeyword[],
+    disabledBuiltinKeywords: string[] = [],
 ): Promise<AdTimeRange | null> {
 
     // Check login status
@@ -162,5 +164,5 @@ export async function detectAdFromVideo(
     const jsonRes: SubtitleFileResponse = await (await fetch(fullUrl)).json();
     const subtitles: BilibiliSubtitle[] = jsonRes.body;
 
-    return detectWithSubtitles(subtitles, client, aiModel, userKeywords);
+    return detectWithSubtitles(subtitles, client, aiModel, userKeywords, disabledBuiltinKeywords);
 }
