@@ -63,9 +63,9 @@ export function showToast(message: string, type: 'success' | 'error' | 'warning'
         duration: TOAST_DURATION_MS,
         gravity: 'top',
         position: 'right',
-        backgroundColor: backgrounds[type],
         stopOnFocus: true,
         style: {
+            background: backgrounds[type],
             borderRadius: '8px',
             fontFamily: 'system-ui, -apple-system, sans-serif',
         },
