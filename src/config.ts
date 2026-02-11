@@ -4,14 +4,11 @@ export type { UserConfig } from './types';
 
 /** 默认用户配置，未设置时使用这些值 */
 export const DEFAULT_CONFIG: UserConfig = {
-    aiProvider: 'gemini',
-    apiKey: '',
     deepseekApiKey: '',
-    aiModel: 'gemini-2.5-flash',
+    aiModel: 'deepseek-chat',
     autoSkip: true,
     ignoreVideoLessThan5Minutes: true,
     ignoreVideoMoreThan30Minutes: true,
-    usingBrowserAIModel: false,
 };
 
 /** 当前生效的用户配置（运行时会被 initializeConfig 覆盖） */

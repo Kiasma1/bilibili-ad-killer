@@ -12,29 +12,6 @@ export type BilibiliSubtitle = {
     content: string;
 }
 
-/** 格式化后的字幕字符串，格式为 [开始时间-结束时间]:内容 */
-export type SubtitleString = `[${string}-${string}]:${string}`;
-
-/** 单条弹幕条目 */
-export type Danmaku = {
-    /** 出现时间（秒） */
-    time: number;
-    /** 弹幕文本 */
-    content: string;
-}
-
-/** 自学习广告检测规则 */
-export type LearnedRule = {
-    /** 广告商名称 */
-    keyword: string;
-    /** 正则字符串 */
-    pattern: string;
-    /** 命中次数 */
-    hitCount: number;
-    /** 添加时间戳 */
-    addedAt: number;
-}
-
 /** 检测到的广告片段的时间范围 */
 export type AdTimeRange = {
     /** 广告开始时间（秒） */
@@ -52,15 +29,8 @@ export type AdCacheEntry = AdTimeRange & {
 /** 视频 ID 到广告时间范围缓存的映射表 */
 export type AdTimeRangeCache = Record<string, AdCacheEntry>;
 
-/** AI 提供商类型 */
-export type AIProvider = 'gemini' | 'deepseek';
-
 /** 用户可配置的扩展设置 */
 export type UserConfig = {
-    /** 当前 AI 提供商 */
-    aiProvider: AIProvider;
-    /** Gemini API 密钥 */
-    apiKey: string;
     /** DeepSeek API 密钥 */
     deepseekApiKey: string;
     /** 使用的 AI 模型名称 */
@@ -71,8 +41,6 @@ export type UserConfig = {
     ignoreVideoLessThan5Minutes: boolean;
     /** 是否忽略时长大于 30 分钟的视频 */
     ignoreVideoMoreThan30Minutes: boolean;
-    /** 是否使用浏览器内置 AI 模型 */
-    usingBrowserAIModel: boolean;
 }
 
 /** B 站播放器 API 响应结构（部分字段） */
@@ -80,8 +48,6 @@ export type BilibiliPlayerResponse = {
     data: {
         /** 视频的 BV 号 */
         bvid: string;
-        /** 视频的 cid（用于弹幕 API） */
-        cid?: number;
         /** 视频标题 */
         name?: string;
         /** 字幕信息 */
