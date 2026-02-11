@@ -22,6 +22,25 @@ export interface FilterResult {
     hitKeywords: string[];
 }
 
+/** 缓存编译后的正则和对应的关键词指纹 */
+let cachedRegex: RegExp | null = null;
+let cachedKeywordsFingerprint = '';
+
+/**
+ * 获取或编译关键词正则（关键词不变时复用缓存）
+ */
+function getKeywordRegex(allKeywords: string[]): RegExp | null {
+    if (allKeywords.length === 0) return null;
+    const fingerprint = allKeywords.join('|');
+    if (cachedRegex && fingerprint === cachedKeywordsFingerprint) {
+        return cachedRegex;
+    }
+    const escaped = allKeywords.map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+    cachedRegex = new RegExp(escaped.join('|'), 'i');
+    cachedKeywordsFingerprint = fingerprint;
+    return cachedRegex;
+}
+
 /**
  * 对字幕进行正则预筛，命中时截取上下文窗口
  */
@@ -30,20 +49,16 @@ export function filterSubtitles(
     userKeywords: UserKeyword[],
     disabledBuiltinKeywords: string[] = [],
 ): FilterResult {
-    // 合并内置词库（排除禁用的） + 用户词库
     const activeBuiltin = BUILTIN_KEYWORDS.filter(k => !disabledBuiltinKeywords.includes(k));
     const allKeywords = [
         ...activeBuiltin,
         ...userKeywords.map(k => k.keyword),
     ];
 
-    if (allKeywords.length === 0) {
+    const regex = getKeywordRegex(allKeywords);
+    if (!regex) {
         return { hit: false, hitKeywords: [] };
     }
-
-    // 构建一个大正则（转义特殊字符）
-    const escaped = allKeywords.map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-    const regex = new RegExp(escaped.join('|'), 'i');
 
     // 遍历字幕，记录命中的关键词和时间点
     const hitKeywords: string[] = [];

@@ -38,8 +38,6 @@ const DEFAULT_CONFIG = {
 
 // ============================================================
 
-console.log('📺 ✔️ Content script loaded');
-
 // ---- Inject scripts into page ----
 
 const cssLink = document.createElement('link');
@@ -50,13 +48,11 @@ cssLink.href = chrome.runtime.getURL('lib/toastify.min.css');
 const injectScript = document.createElement('script');
 injectScript.src = chrome.runtime.getURL('inject.js');
 injectScript.onload = () => {
-  console.log('📺 ✔️ Inject script loaded successfully');
   injectScript.remove();
 
   const toastifyScript = document.createElement('script');
   toastifyScript.src = chrome.runtime.getURL('lib/toastify.min.js');
   toastifyScript.onload = function() {
-    console.log('📺 ✔️ Toastify loaded successfully');
     window.postMessage({ type: MessageType.TOASTIFY_LOADED }, '*');
   };
   (document.head || document.documentElement).appendChild(toastifyScript);
@@ -80,15 +76,9 @@ injectScript.onload = () => {
     ? result.ignoreVideoMoreThan30Minutes
     : DEFAULT_CONFIG.ignoreVideoMoreThan30Minutes;
 
-  console.log('📺 ✔️ Content script - Config retrieved:', {
-    deepseekApiKey, aiModel, autoSkip, ignoreVideoLessThan5Minutes, ignoreVideoMoreThan30Minutes
-  });
+  console.log('📺 Config retrieved');
 
-  /**
-   * 将用户配置和 i18n 文本通过 postMessage 发送给 inject script
-   */
   const sendConfig = () => {
-    console.log('📺 ✔️ Sending config via postMessage');
     window.postMessage({
       type: MessageType.CONFIG,
       config: { deepseekApiKey, aiModel, autoSkip, ignoreVideoLessThan5Minutes, ignoreVideoMoreThan30Minutes },
@@ -135,19 +125,16 @@ injectScript.onload = () => {
     if (event.source !== window) return;
 
     if (event.data.type === MessageType.READY) {
-      console.log('📺 ✔️ Inject script ready, sending config');
       sendConfig();
     }
 
     if (event.data.type === MessageType.REQUEST_CACHE) {
-      console.log('📺 ✔️ Received request for AD time range cache');
       await sendAdTimeRangeCache();
     }
 
     if (event.data.type === MessageType.SAVE_CACHE) {
       const eventData = event.data.data;
-      if (!eventData.videoId || !eventData.startTime || !eventData.endTime) {
-        console.log('📺 ❌ No ad time range received');
+      if (eventData.videoId == null || (eventData.startTime == null && eventData.endTime == null)) {
         return;
       }
 
@@ -178,24 +165,17 @@ injectScript.onload = () => {
       if (!existing.some((k: any) => k.keyword === keyword)) {
         existing.push({ keyword, source: 'ai', createdAt: Date.now() });
         await chrome.storage.local.set({ [USER_KEYWORDS_KEY]: existing });
-        console.log(`📺 📖 ✔️ Saved new keyword: "${keyword}"`);
       }
     }
 
     if (event.data.type === MessageType.SAVE_SUBTITLES) {
       const { videoId, subtitles } = event.data.data;
       await chrome.storage.local.set({ [CURRENT_SUBTITLES_KEY]: { videoId, subtitles } });
-      console.log(`📺 📝 ✔️ Saved ${subtitles.length} subtitles for ${videoId}`);
     }
   });
 
-  /**
-   * 监听来自 background service worker 的消息
-   * 当 background 检测到 URL 变化时，转发给 inject script
-   */
   chrome.runtime.onMessage.addListener((message) => {
     if (message.type === MessageType.URL_CHANGED && message.videoId) {
-      console.log('📺 ✔️ URL change detected by background, forwarding to inject:', message.videoId);
       window.postMessage({
         type: MessageType.URL_CHANGED,
         videoId: message.videoId,

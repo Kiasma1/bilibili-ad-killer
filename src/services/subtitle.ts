@@ -15,16 +15,10 @@ import { filterSubtitles } from './keyword-filter';
  * 根据视频时长判断是否应跳过该视频的广告检测
  */
 export function shouldSkipVideo(ignoreShortVideos: boolean, ignoreLongVideos: boolean): boolean {
-    const videoDuration = window.__INITIAL_STATE__.videoData.duration;
-    console.log('📺 ✔️ Video duration', videoDuration);
-    if (ignoreShortVideos && videoDuration !== null && videoDuration <= MIN_VIDEO_DURATION_S) {
-        console.log(`📺 ✔️ Ignoring video: duration (${videoDuration}s) is less than 5 minutes`);
-        return true;
-    }
-    if (ignoreLongVideos && videoDuration !== null && videoDuration >= MAX_VIDEO_DURATION_S) {
-        console.log(`📺 ✔️ Ignoring video: duration (${videoDuration}s) is more than 30 minutes`);
-        return true;
-    }
+    const videoDuration = window.__INITIAL_STATE__?.videoData?.duration;
+    if (!videoDuration || videoDuration <= 0) return false;
+    if (ignoreShortVideos && videoDuration <= MIN_VIDEO_DURATION_S) return true;
+    if (ignoreLongVideos && videoDuration >= MAX_VIDEO_DURATION_S) return true;
     return false;
 }
 
@@ -55,8 +49,8 @@ async function detectWithSubtitles(
     userKeywords: UserKeyword[],
     disabledBuiltinKeywords: string[],
 ): Promise<AdTimeRange | null> {
-    const videoTitle = window.__INITIAL_STATE__.videoData.title;
-    const videoDescription = window.__INITIAL_STATE__.videoData.desc;
+    const videoTitle = window.__INITIAL_STATE__?.videoData?.title ?? '';
+    const videoDescription = window.__INITIAL_STATE__?.videoData?.desc ?? '';
 
     // 阶段 1：正则预筛
     const filterResult = filterSubtitles(subtitles, userKeywords, disabledBuiltinKeywords);
@@ -67,11 +61,10 @@ async function detectWithSubtitles(
         : subtitles;
 
     if (!filterResult.hit) {
-        console.log('📺 🔍 No regex hit, sending full subtitles');
+        // No regex hit — send full subtitles to AI
     }
 
     const subStr = formatSubtitlesForAI(targetSubtitles);
-    console.log(`📺 📝 Subtitle length: ${subStr.length} chars`);
 
     try {
         addAnimation('bilibili-thinking-animation');
@@ -87,12 +80,10 @@ async function detectWithSubtitles(
         // result: AdDetectionResult (有广告), null (无广告), undefined (请求失败)
         // 只有 undefined 时不缓存（下次重试），null 和有广告都缓存
         if (result === null) {
-            // 无广告 — 缓存 {0, 0} 避免重复请求
             window.postMessage({ type: MessageType.SAVE_CACHE, data: {
                 videoId: window.__INITIAL_STATE__?.bvid || '',
                 startTime: 0, endTime: 0,
             } }, '*');
-            console.log('📺 🤖 No ad found, cached as no-ad');
             return null;
         }
 
@@ -130,42 +121,30 @@ export async function detectAdFromVideo(
 
     // Check login status
     if (!response.data?.name) {
-        console.error('📺 ❌ Not login yet');
         showToast(messages.notLoginYet);
         return null;
     }
 
     // Check cache first (includes "no ad" cache entries with startTime=0, endTime=0)
-    console.log('📺 📦 ✔️ Video ID:', videoId);
     if (cache && videoId && cache[videoId]) {
         const cached = cache[videoId];
-        if (cached.startTime === 0 && cached.endTime === 0) {
-            console.log('📺 📦 ✔️ Cache hit: no ad for video:', videoId);
-            return null;
-        }
-        console.log('📺 📦 ✔️ Cache hit for video:', videoId, cached);
+        if (cached.startTime === 0 && cached.endTime === 0) return null;
         return { startTime: cached.startTime, endTime: cached.endTime };
     }
-    console.log('📺 📦 ✔️ Cache miss for video:', videoId);
 
-    // Verify AI client is ready
-    if (!client || !aiModel) {
-        console.error('📺 🤖 ❌ AI client not initialized');
-        return null;
-    }
+    if (!client || !aiModel) return null;
 
     // Check subtitles
     const hasSubtitles = (response.data?.subtitle?.subtitles?.length ?? 0) > 0;
 
     if (!hasSubtitles) {
-        console.log('📺 ❌ No subtitles available');
         flashWarningAnimation();
         return null;
     }
 
-    const targetSubtitle = response.data.subtitle!.subtitles[0];
-    if (!targetSubtitle.subtitle_url) {
-        console.error('📺 ❌ Unable to get the subtitle url');
+    const subtitleList = response.data.subtitle!.subtitles;
+    const targetSubtitle = subtitleList.find(s => s.subtitle_url);
+    if (!targetSubtitle) {
         flashWarningAnimation();
         return null;
     }
@@ -174,11 +153,19 @@ export async function detectAdFromVideo(
         ? 'https:' + targetSubtitle.subtitle_url
         : targetSubtitle.subtitle_url;
 
-    console.log(`📺 ✔️ Language: ${targetSubtitle.lan_doc} (${targetSubtitle.lan})`);
-    console.log(`📺 ✔️ URL: ${fullUrl}`);
+    console.log(`📺 Subtitles: ${targetSubtitle.lan} (${subtitleList.length} available)`);
 
-    const jsonRes: SubtitleFileResponse = await (await fetch(fullUrl)).json();
-    const subtitles: BilibiliSubtitle[] = jsonRes.body;
+    let subtitles: BilibiliSubtitle[];
+    try {
+        const res = await fetch(fullUrl);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const jsonRes: SubtitleFileResponse = await res.json();
+        subtitles = jsonRes.body;
+    } catch (err) {
+        console.error('📺 ❌ Failed to fetch subtitles:', err);
+        flashWarningAnimation();
+        return null;
+    }
 
     // Save subtitles for popup transcript tab
     window.postMessage({ type: MessageType.SAVE_SUBTITLES, data: { videoId, subtitles } }, '*');

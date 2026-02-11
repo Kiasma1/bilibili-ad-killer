@@ -28,10 +28,11 @@ let disabledBuiltinKeywords: string[] = [];
 const webResponseCache: { [videoBvid: string]: BilibiliPlayerResponse } = {};
 /** 当前正在处理的视频 BV 号 */
 let currentVideoId: string | null = null;
+/** 当前正在进行的 AI 检测的视频 ID，用于竞态条件检查 */
+let processingVideoId: string | null = null;
 
 // ---- Signal readiness ----
 
-console.log('📺 ✔️ Inject script ready, signaling to content script');
 window.postMessage({ type: MessageType.READY }, '*');
 window.postMessage({ type: MessageType.REQUEST_CACHE }, '*');
 window.postMessage({ type: MessageType.REQUEST_KEYWORDS }, '*');
@@ -55,16 +56,11 @@ window.addEventListener('message', (event) => {
 
     if (event.data.type === MessageType.SEND_CACHE) {
         adTimeRangeCache = event.data.data;
-        if (!adTimeRangeCache || Object.keys(adTimeRangeCache).length === 0) {
-            return;
-        }
-        console.log('📺 📦 ✔️ Retrieved ad time cache');
     }
 
     if (event.data.type === MessageType.SEND_KEYWORDS) {
         userKeywords = event.data.data || [];
         disabledBuiltinKeywords = event.data.disabledBuiltin || [];
-        console.log(`📺 📖 ✔️ Retrieved ${userKeywords.length} user keywords, ${disabledBuiltinKeywords.length} disabled builtin`);
     }
 
     if (event.data.type === MessageType.CONFIG) {
@@ -76,23 +72,13 @@ window.addEventListener('message', (event) => {
             initToastMessages(event.data.i18n);
         }
 
-        console.log('📺 ⚙️ ✔️ Config received:', {
-            deepseekApiKey: receivedConfig.deepseekApiKey,
-            aiModel: receivedConfig.aiModel,
-            autoSkip: receivedConfig.autoSkip,
-            ignoreVideoLessThan5Minutes: receivedConfig.ignoreVideoLessThan5Minutes,
-            ignoreVideoMoreThan30Minutes: receivedConfig.ignoreVideoMoreThan30Minutes,
-        });
-
         if (receivedConfig.deepseekApiKey) {
             aiClient = new OpenAI({
                 apiKey: receivedConfig.deepseekApiKey,
                 baseURL: 'https://api.deepseek.com',
                 dangerouslyAllowBrowser: true,
             });
-            console.log('📺 🤖 ✔️ DeepSeek AI initialized');
         } else {
-            console.log('📺 🤖 ❌ No API key provided');
             showToast(messages.noApiKeyProvided);
         }
     }
@@ -117,16 +103,21 @@ async function processVideo(response: BilibiliPlayerResponse, videoId: string): 
         }
     }
 
+    processingVideoId = videoId;
+
     const adTimeRange = await detectAdFromVideo(
         response, videoId, aiClient, config?.aiModel ?? '', adTimeRangeCache, userKeywords, disabledBuiltinKeywords
     );
 
-    if (!adTimeRange) {
-        console.log('📺 ✔️ No ads detected in this video');
+    // Race condition guard: if video changed during AI request, discard result
+    if (processingVideoId !== videoId) {
+        console.log('📺 Video changed during detection, discarding result for', videoId);
         return;
     }
 
-    console.log('📺 ✔️ Ad detected:', adTimeRange);
+    if (!adTimeRange) return;
+
+    console.log('📺 Ad detected:', adTimeRange);
     initializeAdBar(adTimeRange.startTime, adTimeRange.endTime);
 }
 
@@ -164,19 +155,14 @@ function cleanupForNavigation(): void {
  * 处理视频切换逻辑：清理旧资源，尝试从缓存处理新视频
  */
 async function handleVideoChange(newVideoId: string): Promise<void> {
-    console.log('📺 🔄 URL changed:', currentVideoId, '→', newVideoId);
     cleanupForNavigation();
     currentVideoId = newVideoId;
 
     if (webResponseCache[newVideoId]) {
-        console.log('📺 ⚡ Processing from cache:', newVideoId);
         await processVideo(webResponseCache[newVideoId], newVideoId);
-    } else {
-        console.log('📺 ⏭️ Cache miss for:', newVideoId, '- cleaned up only');
     }
 }
 
 if (window.location.pathname.startsWith('/video/')) {
     currentVideoId = getVideoIdFromCurrentPage();
-    console.log('📺 ✔️ Initial video ID:', currentVideoId);
 }

@@ -270,7 +270,12 @@ function setupAutoSkip(video: HTMLVideoElement, adStartSeconds: number, adEndSec
         }
     };
 
+    let lastThrottledTime = 0;
     const handleTimeUpdate = () => {
+        const now = performance.now();
+        if (now - lastThrottledTime < 250) return; // throttle to ~4fps
+        lastThrottledTime = now;
+
         const currentTime = video.currentTime;
         const animationStartTime = Math.max(0, adStartSeconds - ANIMATION_LEAD_TIME_S);
 
@@ -335,14 +340,20 @@ export function initializeAdBar(adStartSeconds: number, adEndSeconds: number): v
     const video = document.querySelector(SELECTORS.VIDEO) as HTMLVideoElement;
 
     if (!video) {
-        console.log('📺 ❌ Video element not found, checking again...');
+        console.log('📺 Video element not found, polling...');
+        let retries = 0;
+        const MAX_RETRIES = 60; // 30 seconds max
         const checkVideo = window.setInterval(() => {
+            retries++;
             const v = document.querySelector(SELECTORS.VIDEO) as HTMLVideoElement;
             if (v) {
-                console.log('📺 ✔️ Video element found');
                 clearInterval(checkVideo);
                 cleanupManager.untrackInterval(checkVideo);
                 initializeAdBar(adStartSeconds, adEndSeconds);
+            } else if (retries >= MAX_RETRIES) {
+                console.warn('📺 Video element not found after 30s, giving up');
+                clearInterval(checkVideo);
+                cleanupManager.untrackInterval(checkVideo);
             }
         }, VIDEO_ELEMENT_POLL_MS);
         cleanupManager.trackInterval(checkVideo);

@@ -113,6 +113,11 @@ function parseResponse(responseText: string): AdDetectionResult | null | undefin
     parsed.startTime = parseFloat(parsed.startTime);
     parsed.endTime = parseFloat(parsed.endTime);
 
+    if (isNaN(parsed.startTime) || isNaN(parsed.endTime)) {
+        console.log('📺 🤖 Invalid ad time range (NaN)');
+        return null;
+    }
+
     if (typeof window !== 'undefined') {
         const videoId = getVideoIdFromCurrentPage();
         window.postMessage({
