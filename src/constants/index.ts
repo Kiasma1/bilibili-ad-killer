@@ -57,11 +57,11 @@ export const ANIMATION_LEAD_TIME_S = 3;
 /** 短于此时长的视频将被忽略（秒，即 5 分钟） */
 export const MIN_VIDEO_DURATION_S = 5 * 60;
 
+/** 长于此时长的视频将被忽略（秒，即 30 分钟） */
+export const MAX_VIDEO_DURATION_S = 30 * 60;
+
 /** AI 广告检测请求的超时时间（毫秒） */
 export const AI_TIMEOUT_MS = 60 * 1000;
-
-/** AI 连通性检查的超时时间（毫秒） */
-export const CONNECTIVITY_TIMEOUT_MS = 15 * 1000;
 
 /** 正则预筛命中后截取的上下文窗口大小（秒，前后各 2 分钟） */
 export const CONTEXT_WINDOW_S = 120;

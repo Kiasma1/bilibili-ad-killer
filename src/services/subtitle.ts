@@ -1,7 +1,7 @@
 import OpenAI from 'openai';
 import { identifyAdTimeRange } from '../ai';
 import { addAnimation, removeAnimation } from '../bilibili-ui';
-import { MessageType, MIN_VIDEO_DURATION_S, WARNING_DISPLAY_MS } from '../constants';
+import { MessageType, MIN_VIDEO_DURATION_S, MAX_VIDEO_DURATION_S, WARNING_DISPLAY_MS } from '../constants';
 import { warningAnimation } from '../style';
 import { messages, showToast } from '../toast';
 import { AdTimeRange, AdTimeRangeCache, BilibiliPlayerResponse, BilibiliSubtitle, SubtitleFileResponse, UserKeyword } from '../types';
@@ -14,12 +14,15 @@ import { filterSubtitles } from './keyword-filter';
 /**
  * 根据视频时长判断是否应跳过该视频的广告检测
  */
-export function shouldSkipVideo(ignoreShortVideos: boolean): boolean {
-    if (!ignoreShortVideos) return false;
+export function shouldSkipVideo(ignoreShortVideos: boolean, ignoreLongVideos: boolean): boolean {
     const videoDuration = window.__INITIAL_STATE__.videoData.duration;
     console.log('📺 ✔️ Video duration', videoDuration);
-    if (videoDuration !== null && videoDuration <= MIN_VIDEO_DURATION_S) {
+    if (ignoreShortVideos && videoDuration !== null && videoDuration <= MIN_VIDEO_DURATION_S) {
         console.log(`📺 ✔️ Ignoring video: duration (${videoDuration}s) is less than 5 minutes`);
+        return true;
+    }
+    if (ignoreLongVideos && videoDuration !== null && videoDuration >= MAX_VIDEO_DURATION_S) {
+        console.log(`📺 ✔️ Ignoring video: duration (${videoDuration}s) is more than 30 minutes`);
         return true;
     }
     return false;

@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import { AI_TIMEOUT_MS, CONNECTIVITY_TIMEOUT_MS, MessageType } from './constants';
+import { AI_TIMEOUT_MS, MessageType } from './constants';
 import { messages, showToast } from './toast';
 import { AdTimeRange } from './types';
 import { getVideoIdFromCurrentPage } from './util';

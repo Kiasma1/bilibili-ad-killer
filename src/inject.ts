@@ -111,8 +111,10 @@ window.addEventListener('message', (event) => {
  * 处理单个视频的广告检测流程
  */
 async function processVideo(response: BilibiliPlayerResponse, videoId: string): Promise<void> {
-    if (config?.ignoreVideoLessThan5Minutes && shouldSkipVideo(true)) {
-        return;
+    if (config?.ignoreVideoLessThan5Minutes || config?.ignoreVideoMoreThan30Minutes) {
+        if (shouldSkipVideo(!!config.ignoreVideoLessThan5Minutes, !!config.ignoreVideoMoreThan30Minutes)) {
+            return;
+        }
     }
 
     const adTimeRange = await detectAdFromVideo(
