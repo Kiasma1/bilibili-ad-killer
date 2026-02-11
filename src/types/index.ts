@@ -71,3 +71,13 @@ export type SubtitleFileResponse = {
     /** 字幕条目数组 */
     body: BilibiliSubtitle[];
 }
+
+/** 用户词库条目 */
+export interface UserKeyword {
+    /** 关键词文本，如 "小鹿家" */
+    keyword: string;
+    /** 来源：内置/AI学习/用户手动 */
+    source: 'builtin' | 'ai' | 'user';
+    /** 创建时间戳 */
+    createdAt: number;
+}

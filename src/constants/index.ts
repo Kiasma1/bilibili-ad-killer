@@ -18,6 +18,12 @@ export enum MessageType {
     SAVE_CACHE = 'SAVE_VIDEO_AD_TIMERANGE',
     /** background 检测到 URL 变化，通知 inject script 视频已切换 */
     URL_CHANGED = 'BILIBILI_AD_SKIP_URL_CHANGED',
+    /** inject script 请求用户词库 */
+    REQUEST_KEYWORDS = 'REQUEST_KEYWORDS',
+    /** content script 发送用户词库 */
+    SEND_KEYWORDS = 'SEND_KEYWORDS',
+    /** inject script 请求保存新关键词到词库 */
+    SAVE_KEYWORD = 'SAVE_KEYWORD',
 }
 
 // ---- Timing constants (milliseconds unless noted) ----
@@ -54,6 +60,9 @@ export const AI_TIMEOUT_MS = 60 * 1000;
 
 /** AI 连通性检查的超时时间（毫秒） */
 export const CONNECTIVITY_TIMEOUT_MS = 15 * 1000;
+
+/** 正则预筛命中后截取的上下文窗口大小（秒，前后各 2 分钟） */
+export const CONTEXT_WINDOW_S = 120;
 
 /** Toast 通知的显示时长（毫秒） */
 export const TOAST_DURATION_MS = 3000;
@@ -97,4 +106,6 @@ export const BILIBILI_PLAYER_API = 'api.bilibili.com/x/player/wbi/v2';
 export const STORAGE_KEYS = {
     /** 广告时间范围缓存的存储键 */
     AD_TIME_RANGE_CACHE: 'AD_TIME_RANGE_CACHE',
+    /** 用户词库的存储键 */
+    USER_KEYWORDS: 'USER_KEYWORDS',
 } as const;

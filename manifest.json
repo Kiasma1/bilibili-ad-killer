@@ -31,6 +31,7 @@
   "background": {
     "service_worker": "background.js"
   },
+  "options_page": "src/options/options.html",
   "content_scripts": [
     {
       "matches": ["https://www.bilibili.com/*"],

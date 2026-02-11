@@ -1,10 +1,11 @@
 import OpenAI from 'openai';
 import { checkAIConnectivity, identifyAdTimeRange } from '../ai';
 import { addAnimation, removeAnimation } from '../bilibili-ui';
-import { MIN_VIDEO_DURATION_S, WARNING_DISPLAY_MS } from '../constants';
+import { MessageType, MIN_VIDEO_DURATION_S, WARNING_DISPLAY_MS } from '../constants';
 import { warningAnimation } from '../style';
 import { messages, showToast } from '../toast';
-import { AdTimeRange, AdTimeRangeCache, BilibiliPlayerResponse, BilibiliSubtitle, SubtitleFileResponse } from '../types';
+import { AdTimeRange, AdTimeRangeCache, BilibiliPlayerResponse, BilibiliSubtitle, SubtitleFileResponse, UserKeyword } from '../types';
+import { filterSubtitles } from './keyword-filter';
 
 // ============================================================
 // Subtitle service — fetches subtitles and detects ads via AI
@@ -42,17 +43,30 @@ function formatSubtitlesForAI(subtitles: BilibiliSubtitle[]): string {
 }
 
 /**
- * 有字幕时的广告检测：格式化字幕 → 发给 AI
+ * 有字幕时的广告检测：正则预筛 → AI 精确定位
  */
 async function detectWithSubtitles(
     subtitles: BilibiliSubtitle[],
     client: OpenAI,
     aiModel: string,
+    userKeywords: UserKeyword[],
 ): Promise<AdTimeRange | null> {
     const videoTitle = window.__INITIAL_STATE__.videoData.title;
     const videoDescription = window.__INITIAL_STATE__.videoData.desc;
 
-    const subStr = formatSubtitlesForAI(subtitles);
+    // 阶段 1：正则预筛
+    const filterResult = filterSubtitles(subtitles, userKeywords);
+
+    // 阶段 2：决定发什么给 AI
+    const targetSubtitles = filterResult.hit
+        ? filterResult.contextSubtitles!
+        : subtitles;
+
+    if (!filterResult.hit) {
+        console.log('📺 🔍 No regex hit, sending full subtitles');
+    }
+
+    const subStr = formatSubtitlesForAI(targetSubtitles);
     console.log(`📺 📝 Subtitle length: ${subStr.length} chars`);
 
     try {
@@ -65,6 +79,13 @@ async function detectWithSubtitles(
             videoDescription,
         });
         removeAnimation();
+
+        // 广告商自动学习
+        if (result?.advertiser) {
+            window.postMessage({ type: MessageType.SAVE_KEYWORD, data: { keyword: result.advertiser } }, '*');
+            showToast(`已学习新关键词: ${result.advertiser}`);
+        }
+
         return result ?? null;
     } catch (error) {
         console.error('📺 🤖 ❌ Error identifying ad time range:', error);
@@ -82,6 +103,7 @@ export async function detectAdFromVideo(
     client: OpenAI | null,
     aiModel: string,
     cache: AdTimeRangeCache | null,
+    userKeywords: UserKeyword[],
 ): Promise<AdTimeRange | null> {
 
     // Check login status
@@ -140,5 +162,5 @@ export async function detectAdFromVideo(
     const jsonRes: SubtitleFileResponse = await (await fetch(fullUrl)).json();
     const subtitles: BilibiliSubtitle[] = jsonRes.body;
 
-    return detectWithSubtitles(subtitles, client, aiModel);
+    return detectWithSubtitles(subtitles, client, aiModel, userKeywords);
 }

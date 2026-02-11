@@ -7,7 +7,7 @@ import { MessageType } from './constants';
 import { installXhrInterceptor } from './services/xhr-interceptor';
 import { shouldSkipVideo, detectAdFromVideo } from './services/subtitle';
 import { cleanupManager } from './services/cleanup';
-import { AdTimeRangeCache, BilibiliPlayerResponse } from './types';
+import { AdTimeRangeCache, BilibiliPlayerResponse, UserKeyword } from './types';
 
 // ============================================================
 // inject.ts — slim entry point wiring services together
@@ -19,6 +19,8 @@ let config: UserConfig | null = null;
 let aiClient: OpenAI | null = null;
 /** 广告时间范围缓存（从 content script 接收） */
 let adTimeRangeCache: AdTimeRangeCache | null = null;
+/** 用户词库（从 content script 接收） */
+let userKeywords: UserKeyword[] = [];
 
 /** XHR 拦截到的播放器 API 响应缓存，按视频 BV 号索引 */
 const webResponseCache: { [videoBvid: string]: BilibiliPlayerResponse } = {};
@@ -30,6 +32,7 @@ let currentVideoId: string | null = null;
 console.log('📺 ✔️ Inject script ready, signaling to content script');
 window.postMessage({ type: MessageType.READY }, '*');
 window.postMessage({ type: MessageType.REQUEST_CACHE }, '*');
+window.postMessage({ type: MessageType.REQUEST_KEYWORDS }, '*');
 
 // ---- Message handling ----
 
@@ -54,6 +57,11 @@ window.addEventListener('message', (event) => {
             return;
         }
         console.log('📺 📦 ✔️ Retrieved ad time cache');
+    }
+
+    if (event.data.type === MessageType.SEND_KEYWORDS) {
+        userKeywords = event.data.data || [];
+        console.log(`📺 📖 ✔️ Retrieved ${userKeywords.length} user keywords`);
     }
 
     if (event.data.type === MessageType.CONFIG) {
@@ -105,7 +113,7 @@ async function processVideo(response: BilibiliPlayerResponse, videoId: string): 
     }
 
     const adTimeRange = await detectAdFromVideo(
-        response, videoId, aiClient, config?.aiModel ?? '', adTimeRangeCache
+        response, videoId, aiClient, config?.aiModel ?? '', adTimeRangeCache, userKeywords
     );
 
     if (!adTimeRange) {

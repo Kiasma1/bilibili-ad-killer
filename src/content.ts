@@ -15,10 +15,14 @@ const MessageType = {
   SEND_CACHE: 'SEND_VIDEO_AD_TIMERANGE',
   SAVE_CACHE: 'SAVE_VIDEO_AD_TIMERANGE',
   URL_CHANGED: 'BILIBILI_AD_SKIP_URL_CHANGED',
+  REQUEST_KEYWORDS: 'REQUEST_KEYWORDS',
+  SEND_KEYWORDS: 'SEND_KEYWORDS',
+  SAVE_KEYWORD: 'SAVE_KEYWORD',
 } as const;
 
 const CACHE_TTL_MS = 3 * 24 * 60 * 60 * 1000;
 const AD_TIME_RANGE_CACHE_KEY = 'AD_TIME_RANGE_CACHE';
+const USER_KEYWORDS_KEY = 'USER_KEYWORDS';
 
 const DEFAULT_CONFIG = {
   deepseekApiKey: '',
@@ -156,6 +160,21 @@ injectScript.onload = () => {
       });
 
       await cleanOldCache();
+    }
+
+    if (event.data.type === MessageType.REQUEST_KEYWORDS) {
+      const kws = (await chrome.storage.local.get(USER_KEYWORDS_KEY))[USER_KEYWORDS_KEY] || [];
+      window.postMessage({ type: MessageType.SEND_KEYWORDS, data: kws }, '*');
+    }
+
+    if (event.data.type === MessageType.SAVE_KEYWORD) {
+      const { keyword } = event.data.data;
+      const existing = (await chrome.storage.local.get(USER_KEYWORDS_KEY))[USER_KEYWORDS_KEY] || [];
+      if (!existing.some((k: any) => k.keyword === keyword)) {
+        existing.push({ keyword, source: 'ai', createdAt: Date.now() });
+        await chrome.storage.local.set({ [USER_KEYWORDS_KEY]: existing });
+        console.log(`📺 📖 ✔️ Saved new keyword: "${keyword}"`);
+      }
     }
   });
 
