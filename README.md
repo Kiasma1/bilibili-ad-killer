@@ -87,9 +87,10 @@ background.ts  (service worker)
 └── chrome.tabs.onUpdated listener → URL change detection
 
 popup/App.tsx  (extension popup)
-└── Config form (API key, model, switches)
+├── Config form (API key, model, switches)
+└── Keyword library management (add, edit, delete, disable builtin)
 
-options/options.tsx  (options page)
+options/options.tsx  (options page, legacy)
 └── Keyword library management UI (CRUD, source badges)
 ```
 
@@ -257,9 +258,11 @@ src/
 
 ### Manage Keyword Library
 
-1. Right-click the extension icon → **Options** (or go to `chrome://extensions` → Details → Extension options)
+1. Click the extension icon → switch to the **Keywords** tab
 2. View all keywords: builtin (gray), AI-learned (blue), manually added (green)
-3. Add custom keywords, delete individual entries, or clear all user keywords
+3. Add custom keywords, click to edit, or delete individual entries
+4. Builtin keywords can be disabled (and restored via "Reset Built-in")
+5. The Options page (`chrome://extensions` → Details → Extension options) also provides keyword management
 
 ## Development
 

@@ -156,5 +156,8 @@
   },
   "keywordsBuiltinRestored": {
     "message": "已恢复所有内置关键词"
+  },
+  "keywordsClickToEdit": {
+    "message": "点击编辑"
   }
 }

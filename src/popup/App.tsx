@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Switch, Select, PasswordInput, Button, Stack, Group, Divider, Text, List, TextInput, Badge, ActionIcon, ScrollArea } from '@mantine/core';
+import React, { useState, useEffect, useRef } from 'react';
+import { Switch, Select, PasswordInput, Button, Stack, Group, Divider, Text, List, TextInput, Badge, ActionIcon, ScrollArea, Tooltip } from '@mantine/core';
 import { Tabs } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
@@ -35,6 +35,9 @@ const App: React.FC = () => {
   const [userKeywords, setUserKeywords] = useState<UserKeyword[]>([]);
   const [disabledBuiltin, setDisabledBuiltin] = useState<string[]>([]);
   const [newKeyword, setNewKeyword] = useState('');
+  const [editingKey, setEditingKey] = useState<string | null>(null);
+  const [editingValue, setEditingValue] = useState('');
+  const editInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -171,6 +174,32 @@ const App: React.FC = () => {
     await chrome.storage.local.set({ [USER_KEYWORDS_KEY]: [] });
     setUserKeywords([]);
     notifications.show({ title: t('keywordsCleared'), message: '', color: 'red', position: 'top-right' });
+  };
+
+  const startEditing = (keyword: string) => {
+    setEditingKey(keyword);
+    setEditingValue(keyword);
+    setTimeout(() => editInputRef.current?.focus(), 0);
+  };
+
+  const confirmEdit = async () => {
+    if (!editingKey) return;
+    const trimmed = editingValue.trim();
+    if (!trimmed || trimmed === editingKey) {
+      setEditingKey(null);
+      return;
+    }
+    if (BUILTIN_KEYWORDS.includes(trimmed) || userKeywords.some(k => k.keyword === trimmed)) {
+      notifications.show({ title: t('keywordsExists'), message: `"${trimmed}"`, color: 'yellow', position: 'top-right' });
+      return;
+    }
+    const updated = userKeywords.map(k =>
+      k.keyword === editingKey ? { ...k, keyword: trimmed } : k
+    );
+    await chrome.storage.local.set({ [USER_KEYWORDS_KEY]: updated });
+    setUserKeywords(updated);
+    setEditingKey(null);
+    notifications.show({ title: t('saved'), message: `"${editingKey}" → "${trimmed}"`, color: 'green', position: 'top-right' });
   };
 
   const sourceBadge = (source: string) => {
@@ -335,10 +364,11 @@ const App: React.FC = () => {
             <ScrollArea h={260}>
               <Stack gap={4}>
                 {activeBuiltinKeywords.map(kw => (
-                  <Group key={`b-${kw}`} gap="xs" justify="space-between" wrap="nowrap" style={{ padding: '2px 0' }}>
-                    <Group gap="xs" wrap="nowrap">
+                  <Group key={`b-${kw}`} gap="xs" justify="space-between" wrap="nowrap"
+                    style={{ padding: '3px 6px', borderRadius: 4, background: 'var(--mantine-color-gray-0)' }}>
+                    <Group gap="xs" wrap="nowrap" style={{ flex: 1, minWidth: 0 }}>
                       {sourceBadge('builtin')}
-                      <Text size="xs" truncate>{kw}</Text>
+                      <Text size="xs" truncate style={{ flex: 1 }}>{kw}</Text>
                     </Group>
                     <ActionIcon color="red" variant="subtle" size="xs" onClick={() => disableBuiltinKeyword(kw)}>
                       ✕
@@ -346,10 +376,32 @@ const App: React.FC = () => {
                   </Group>
                 ))}
                 {userKeywords.map(kw => (
-                  <Group key={`u-${kw.keyword}`} gap="xs" justify="space-between" wrap="nowrap" style={{ padding: '2px 0' }}>
-                    <Group gap="xs" wrap="nowrap">
+                  <Group key={`u-${kw.keyword}`} gap="xs" justify="space-between" wrap="nowrap"
+                    style={{ padding: '3px 6px', borderRadius: 4, background: 'var(--mantine-color-gray-0)' }}>
+                    <Group gap="xs" wrap="nowrap" style={{ flex: 1, minWidth: 0 }}>
                       {sourceBadge(kw.source)}
-                      <Text size="xs" truncate>{kw.keyword}</Text>
+                      {editingKey === kw.keyword ? (
+                        <TextInput
+                          ref={editInputRef}
+                          size="xs"
+                          value={editingValue}
+                          onChange={e => setEditingValue(e.currentTarget.value)}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') confirmEdit();
+                            if (e.key === 'Escape') setEditingKey(null);
+                          }}
+                          onBlur={confirmEdit}
+                          style={{ flex: 1 }}
+                          styles={{ input: { height: 22, minHeight: 22, fontSize: 12, padding: '0 6px' } }}
+                        />
+                      ) : (
+                        <Tooltip label={t('keywordsClickToEdit')} openDelay={500} position="top">
+                          <Text size="xs" truncate style={{ flex: 1, cursor: 'pointer' }}
+                            onClick={() => startEditing(kw.keyword)}>
+                            {kw.keyword}
+                          </Text>
+                        </Tooltip>
+                      )}
                     </Group>
                     <ActionIcon color="red" variant="subtle" size="xs" onClick={() => deleteUserKeyword(kw.keyword)}>
                       ✕

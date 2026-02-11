@@ -156,5 +156,8 @@
   },
   "keywordsBuiltinRestored": {
     "message": "Built-in keywords restored"
+  },
+  "keywordsClickToEdit": {
+    "message": "Click to edit"
   }
 }
