@@ -84,7 +84,7 @@ popup/App.tsx  (extension popup)
 ├── Config form (API key, model, switches)
 ├── Keyword library management (add, edit, delete, disable builtin)
 ├── Transcript viewer (display & copy subtitles)
-└── Stats dashboard + manual ad marking
+└── Stats dashboard
 ```
 
 ### Ad Detection Flow
@@ -261,13 +261,10 @@ src/
 2. Click the extension icon → switch to the **Transcript** tab
 3. View timestamped subtitles, click "Copy" to copy full transcript
 
-### Detection Stats & Manual Ad Marking
+### Detection Stats
 
 1. Click the extension icon → switch to the **Stats** tab
 2. View detection statistics: videos scanned, ads found, time saved, manual marks
-3. To manually mark an ad: enter start/end time (in seconds) and click "Apply"
-4. Manual marks override AI detection and are cached for the current video
-5. Click "Clear" to remove the ad mark for the current video
 
 ## Development
 

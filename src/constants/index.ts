@@ -28,8 +28,6 @@ export enum MessageType {
     SAVE_SUBTITLES = 'SAVE_SUBTITLES',
     /** inject script 通知 content script 更新统计数据 */
     UPDATE_STATS = 'UPDATE_STATS',
-    /** inject script 请求手动设置广告时间范围 */
-    MANUAL_AD_RANGE = 'MANUAL_AD_RANGE',
 }
 
 // ---- Timing constants (milliseconds unless noted) ----

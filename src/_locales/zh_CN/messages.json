@@ -135,29 +135,5 @@
   },
   "statsResetDone": {
     "message": "统计已重置"
-  },
-  "manualAdTitle": {
-    "message": "手动标记广告"
-  },
-  "manualAdStart": {
-    "message": "开始时间 (秒)"
-  },
-  "manualAdEnd": {
-    "message": "结束时间 (秒)"
-  },
-  "manualAdApply": {
-    "message": "应用"
-  },
-  "manualAdApplied": {
-    "message": "已应用手动广告标记"
-  },
-  "manualAdInvalid": {
-    "message": "时间范围无效"
-  },
-  "manualAdClear": {
-    "message": "清除标记"
-  },
-  "manualAdCleared": {
-    "message": "已清除广告标记"
   }
 }

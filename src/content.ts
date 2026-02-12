@@ -20,7 +20,6 @@ const MessageType = {
   SAVE_KEYWORD: 'SAVE_KEYWORD',
   SAVE_SUBTITLES: 'SAVE_SUBTITLES',
   UPDATE_STATS: 'UPDATE_STATS',
-  MANUAL_AD_RANGE: 'MANUAL_AD_RANGE',
 } as const;
 
 const CACHE_TTL_MS = 3 * 24 * 60 * 60 * 1000;
@@ -126,6 +125,7 @@ injectScript.onload = () => {
 
   window.addEventListener('message', async (event) => {
     if (event.source !== window) return;
+    if (!chrome?.storage?.local) return;
 
     if (event.data.type === MessageType.READY) {
       sendConfig();
@@ -185,17 +185,6 @@ injectScript.onload = () => {
       if (type === 'ad_found') { stats.adsFound++; stats.adsSkippedSeconds += (adDuration || 0); }
       if (type === 'manual') { stats.manualMarks++; stats.adsFound++; stats.adsSkippedSeconds += (adDuration || 0); }
       await chrome.storage.local.set({ [DETECTION_STATS_KEY]: stats });
-    }
-
-    if (event.data.type === MessageType.MANUAL_AD_RANGE) {
-      const { videoId, startTime, endTime } = event.data.data;
-      const cache = (await chrome.storage.local.get(AD_TIME_RANGE_CACHE_KEY))[AD_TIME_RANGE_CACHE_KEY] || {};
-      await chrome.storage.local.set({
-        [AD_TIME_RANGE_CACHE_KEY]: {
-          ...cache,
-          [videoId]: { startTime, endTime, createAt: Date.now() },
-        },
-      });
     }
   });
 
