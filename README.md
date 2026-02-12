@@ -33,20 +33,14 @@ When AI detects an advertiser name, it's automatically added to the keyword libr
 │  │  Popup UI)   │                  ┌──────────┴──────────────┐  │
 │  │              │                  │     inject.ts            │  │
 │  │ - Config     │                  │   (Page Context)         │  │
-│  └───────────────┘                  │                         │  │
-│                                     │  - XHR interception     │  │
-│  ┌───────────────┐                  │  - Two-stage detection  │  │
-│  │ options.tsx   │                  │  - UI rendering          │  │
-│  │ (Options      │                  └─────────────────────────┘  │
-│  │  Page)       │                                                │
-│  │              │                                                │
-│  │ - Keyword    │                                                │
-│  │   library    │                                                │
-│  │   CRUD       │                                                │
-│  └───────────────┘                                               │
+│  │ - Keywords   │                  │                         │  │
+│  │ - Transcript │                  │  - XHR interception     │  │
+│  │ - Stats      │                  │  - Two-stage detection  │  │
+│  └───────────────┘                  │  - UI rendering          │  │
+│                                     └─────────────────────────┘  │
 │                                                                  │
 │  ┌───────────────┐                                               │
-│  │chrome.storage │ <── config, ad cache, user keywords           │
+│  │chrome.storage │ <── config, ad cache, keywords, stats        │
 │  │  .local       │                                               │
 │  └───────────────┘                                               │
 └──────────────────────────────────────────────────────────────────┘
@@ -88,10 +82,9 @@ background.ts  (service worker)
 
 popup/App.tsx  (extension popup)
 ├── Config form (API key, model, switches)
-└── Keyword library management (add, edit, delete, disable builtin)
-
-options/options.tsx  (options page, legacy)
-└── Keyword library management UI (CRUD, source badges)
+├── Keyword library management (add, edit, delete, disable builtin)
+├── Transcript viewer (display & copy subtitles)
+└── Stats dashboard + manual ad marking
 ```
 
 ### Ad Detection Flow
@@ -179,6 +172,8 @@ inject.ts (page)              content.ts (isolated)         background.ts (SW)
      │  (during detection)          │                             │
      │── SAVE_CACHE ───────────────>│  (writes to storage)        │
      │── SAVE_KEYWORD ─────────────>│  (writes to storage)        │
+     │── SAVE_SUBTITLES ───────────>│  (writes to storage)        │
+     │── UPDATE_STATS ─────────────>│  (increments counters)      │
      │                              │                             │
      │                              │<── URL_CHANGED ─────────────│
      │<──── URL_CHANGED ───────────-│  (forwarded)                │
@@ -228,13 +223,10 @@ src/
 │   ├── useI18n.ts             # i18n hook
 │   └── useChromeStorageLocal.ts
 ├── popup/
-│   ├── App.tsx                # Popup UI (config)
+│   ├── App.tsx                # Popup UI (config, keywords, transcript, stats)
 │   ├── App.css
 │   ├── popup.html
 │   └── popup.tsx              # React entry point
-├── options/
-│   ├── options.html
-│   └── options.tsx            # Keyword library management page
 └── _locales/                  # i18n message files
     ├── en/messages.json
     └── zh_CN/messages.json
@@ -262,7 +254,20 @@ src/
 2. View all keywords: builtin (gray), AI-learned (blue), manually added (green)
 3. Add custom keywords, click to edit, or delete individual entries
 4. Builtin keywords can be disabled (and restored via "Reset Built-in")
-5. The Options page (`chrome://extensions` → Details → Extension options) also provides keyword management
+
+### View Transcript
+
+1. Open a Bilibili video with subtitles
+2. Click the extension icon → switch to the **Transcript** tab
+3. View timestamped subtitles, click "Copy" to copy full transcript
+
+### Detection Stats & Manual Ad Marking
+
+1. Click the extension icon → switch to the **Stats** tab
+2. View detection statistics: videos scanned, ads found, time saved, manual marks
+3. To manually mark an ad: enter start/end time (in seconds) and click "Apply"
+4. Manual marks override AI detection and are cached for the current video
+5. Click "Clear" to remove the ad mark for the current video
 
 ## Development
 

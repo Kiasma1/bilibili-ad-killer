@@ -19,12 +19,15 @@ const MessageType = {
   SEND_KEYWORDS: 'SEND_KEYWORDS',
   SAVE_KEYWORD: 'SAVE_KEYWORD',
   SAVE_SUBTITLES: 'SAVE_SUBTITLES',
+  UPDATE_STATS: 'UPDATE_STATS',
+  MANUAL_AD_RANGE: 'MANUAL_AD_RANGE',
 } as const;
 
 const CACHE_TTL_MS = 3 * 24 * 60 * 60 * 1000;
 const AD_TIME_RANGE_CACHE_KEY = 'AD_TIME_RANGE_CACHE';
 const USER_KEYWORDS_KEY = 'USER_KEYWORDS';
 const CURRENT_SUBTITLES_KEY = 'CURRENT_SUBTITLES';
+const DETECTION_STATS_KEY = 'DETECTION_STATS';
 
 const DISABLED_BUILTIN_KEYWORDS_KEY = 'DISABLED_BUILTIN_KEYWORDS';
 
@@ -171,6 +174,28 @@ injectScript.onload = () => {
     if (event.data.type === MessageType.SAVE_SUBTITLES) {
       const { videoId, subtitles } = event.data.data;
       await chrome.storage.local.set({ [CURRENT_SUBTITLES_KEY]: { videoId, subtitles } });
+    }
+
+    if (event.data.type === MessageType.UPDATE_STATS) {
+      const { type, adDuration } = event.data.data;
+      const stats = (await chrome.storage.local.get(DETECTION_STATS_KEY))[DETECTION_STATS_KEY] || {
+        totalScanned: 0, adsFound: 0, adsSkippedSeconds: 0, manualMarks: 0,
+      };
+      if (type === 'scanned') stats.totalScanned++;
+      if (type === 'ad_found') { stats.adsFound++; stats.adsSkippedSeconds += (adDuration || 0); }
+      if (type === 'manual') { stats.manualMarks++; stats.adsFound++; stats.adsSkippedSeconds += (adDuration || 0); }
+      await chrome.storage.local.set({ [DETECTION_STATS_KEY]: stats });
+    }
+
+    if (event.data.type === MessageType.MANUAL_AD_RANGE) {
+      const { videoId, startTime, endTime } = event.data.data;
+      const cache = (await chrome.storage.local.get(AD_TIME_RANGE_CACHE_KEY))[AD_TIME_RANGE_CACHE_KEY] || {};
+      await chrome.storage.local.set({
+        [AD_TIME_RANGE_CACHE_KEY]: {
+          ...cache,
+          [videoId]: { startTime, endTime, createAt: Date.now() },
+        },
+      });
     }
   });
 

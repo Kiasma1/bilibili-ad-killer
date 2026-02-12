@@ -26,6 +26,10 @@ export enum MessageType {
     SAVE_KEYWORD = 'SAVE_KEYWORD',
     /** inject script 发送字幕数据给 content script 存储 */
     SAVE_SUBTITLES = 'SAVE_SUBTITLES',
+    /** inject script 通知 content script 更新统计数据 */
+    UPDATE_STATS = 'UPDATE_STATS',
+    /** inject script 请求手动设置广告时间范围 */
+    MANUAL_AD_RANGE = 'MANUAL_AD_RANGE',
 }
 
 // ---- Timing constants (milliseconds unless noted) ----
@@ -114,4 +118,6 @@ export const STORAGE_KEYS = {
     DISABLED_BUILTIN_KEYWORDS: 'DISABLED_BUILTIN_KEYWORDS',
     /** 当前视频字幕数据 */
     CURRENT_SUBTITLES: 'CURRENT_SUBTITLES',
+    /** 广告检测统计数据 */
+    DETECTION_STATS: 'DETECTION_STATS',
 } as const;

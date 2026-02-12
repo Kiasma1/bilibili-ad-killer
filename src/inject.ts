@@ -105,6 +105,9 @@ async function processVideo(response: BilibiliPlayerResponse, videoId: string): 
 
     processingVideoId = videoId;
 
+    // 统计：扫描了一个视频
+    window.postMessage({ type: MessageType.UPDATE_STATS, data: { type: 'scanned' } }, '*');
+
     const adTimeRange = await detectAdFromVideo(
         response, videoId, aiClient, config?.aiModel ?? '', adTimeRangeCache, userKeywords, disabledBuiltinKeywords
     );
@@ -116,6 +119,10 @@ async function processVideo(response: BilibiliPlayerResponse, videoId: string): 
     }
 
     if (!adTimeRange) return;
+
+    // 统计：检测到广告
+    const adDuration = adTimeRange.endTime - adTimeRange.startTime;
+    window.postMessage({ type: MessageType.UPDATE_STATS, data: { type: 'ad_found', adDuration } }, '*');
 
     console.log('📺 Ad detected:', adTimeRange);
     initializeAdBar(adTimeRange.startTime, adTimeRange.endTime);

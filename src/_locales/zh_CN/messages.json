@@ -114,5 +114,50 @@
   },
   "transcriptCopied": {
     "message": "已复制到剪贴板"
+  },
+  "statsTab": {
+    "message": "统计"
+  },
+  "statsScanned": {
+    "message": "扫描视频"
+  },
+  "statsAdsFound": {
+    "message": "检测到广告"
+  },
+  "statsTimeSaved": {
+    "message": "节省时间"
+  },
+  "statsManual": {
+    "message": "手动标记"
+  },
+  "statsReset": {
+    "message": "重置统计"
+  },
+  "statsResetDone": {
+    "message": "统计已重置"
+  },
+  "manualAdTitle": {
+    "message": "手动标记广告"
+  },
+  "manualAdStart": {
+    "message": "开始时间 (秒)"
+  },
+  "manualAdEnd": {
+    "message": "结束时间 (秒)"
+  },
+  "manualAdApply": {
+    "message": "应用"
+  },
+  "manualAdApplied": {
+    "message": "已应用手动广告标记"
+  },
+  "manualAdInvalid": {
+    "message": "时间范围无效"
+  },
+  "manualAdClear": {
+    "message": "清除标记"
+  },
+  "manualAdCleared": {
+    "message": "已清除广告标记"
   }
 }

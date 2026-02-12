@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Switch, Select, PasswordInput, Button, Stack, Group, Divider, Text, List, TextInput, Badge, ActionIcon, ScrollArea, Tooltip } from '@mantine/core';
+import { Switch, Select, PasswordInput, Button, Stack, Group, Divider, Text, TextInput, NumberInput, Badge, ActionIcon, ScrollArea, Tooltip } from '@mantine/core';
 import { Tabs } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
@@ -25,11 +25,20 @@ interface UserKeyword {
 const USER_KEYWORDS_KEY = 'USER_KEYWORDS';
 const DISABLED_BUILTIN_KEY = 'DISABLED_BUILTIN_KEYWORDS';
 const CURRENT_SUBTITLES_KEY = 'CURRENT_SUBTITLES';
+const DETECTION_STATS_KEY = 'DETECTION_STATS';
+const AD_TIME_RANGE_CACHE_KEY = 'AD_TIME_RANGE_CACHE';
 
 interface SubtitleEntry {
   from: number;
   to: number;
   content: string;
+}
+
+interface DetectionStats {
+  totalScanned: number;
+  adsFound: number;
+  adsSkippedSeconds: number;
+  manualMarks: number;
 }
 
 const App: React.FC = () => {
@@ -50,6 +59,11 @@ const App: React.FC = () => {
   // Transcript state
   const [subtitles, setSubtitles] = useState<SubtitleEntry[]>([]);
   const [subtitleVideoId, setSubtitleVideoId] = useState<string>('');
+
+  // Stats state
+  const [stats, setStats] = useState<DetectionStats>({ totalScanned: 0, adsFound: 0, adsSkippedSeconds: 0, manualMarks: 0 });
+  const [manualStart, setManualStart] = useState<number | string>('');
+  const [manualEnd, setManualEnd] = useState<number | string>('');
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -159,6 +173,69 @@ const App: React.FC = () => {
     };
     loadSubtitles();
   }, []);
+
+  // ---- Stats logic ----
+
+  useEffect(() => {
+    const loadStats = async () => {
+      const result = await chrome.storage.local.get(DETECTION_STATS_KEY);
+      if (result[DETECTION_STATS_KEY]) setStats(result[DETECTION_STATS_KEY]);
+    };
+    loadStats();
+  }, []);
+
+  const resetStats = async () => {
+    const empty: DetectionStats = { totalScanned: 0, adsFound: 0, adsSkippedSeconds: 0, manualMarks: 0 };
+    await chrome.storage.local.set({ [DETECTION_STATS_KEY]: empty });
+    setStats(empty);
+    notifications.show({ title: t('statsResetDone'), message: '', color: 'green', position: 'top-right' });
+  };
+
+  const formatDuration = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = Math.floor(seconds % 60);
+    if (m > 0) return `${m}m ${s}s`;
+    return `${s}s`;
+  };
+
+  const applyManualAd = async () => {
+    const start = Number(manualStart);
+    const end = Number(manualEnd);
+    if (isNaN(start) || isNaN(end) || start < 0 || end <= start) {
+      notifications.show({ title: t('manualAdInvalid'), message: '', color: 'red', position: 'top-right' });
+      return;
+    }
+    // Get current video ID from stored subtitles (best available source in popup)
+    const result = await chrome.storage.local.get(CURRENT_SUBTITLES_KEY);
+    const videoId = result[CURRENT_SUBTITLES_KEY]?.videoId;
+    if (!videoId) {
+      notifications.show({ title: t('manualAdInvalid'), message: 'No video', color: 'red', position: 'top-right' });
+      return;
+    }
+    // Save to cache via content script
+    const cache = (await chrome.storage.local.get(AD_TIME_RANGE_CACHE_KEY))[AD_TIME_RANGE_CACHE_KEY] || {};
+    await chrome.storage.local.set({
+      [AD_TIME_RANGE_CACHE_KEY]: { ...cache, [videoId]: { startTime: start, endTime: end, createAt: Date.now() } },
+    });
+    // Update stats
+    const adDuration = end - start;
+    const newStats = { ...stats, manualMarks: stats.manualMarks + 1, adsFound: stats.adsFound + 1, adsSkippedSeconds: stats.adsSkippedSeconds + adDuration };
+    await chrome.storage.local.set({ [DETECTION_STATS_KEY]: newStats });
+    setStats(newStats);
+    setManualStart('');
+    setManualEnd('');
+    notifications.show({ title: t('manualAdApplied'), message: `${start}s → ${end}s`, color: 'green', position: 'top-right' });
+  };
+
+  const clearManualAd = async () => {
+    const result = await chrome.storage.local.get(CURRENT_SUBTITLES_KEY);
+    const videoId = result[CURRENT_SUBTITLES_KEY]?.videoId;
+    if (!videoId) return;
+    const cache = (await chrome.storage.local.get(AD_TIME_RANGE_CACHE_KEY))[AD_TIME_RANGE_CACHE_KEY] || {};
+    delete cache[videoId];
+    await chrome.storage.local.set({ [AD_TIME_RANGE_CACHE_KEY]: cache });
+    notifications.show({ title: t('manualAdCleared'), message: '', color: 'green', position: 'top-right' });
+  };
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
@@ -273,6 +350,9 @@ const App: React.FC = () => {
         </Tabs.Tab>
         <Tabs.Tab value="transcript">
           {t('transcriptTab')}
+        </Tabs.Tab>
+        <Tabs.Tab value="stats">
+          {t('statsTab')}
         </Tabs.Tab>
       </Tabs.List>
 
@@ -483,6 +563,61 @@ const App: React.FC = () => {
             ) : (
               <Text size="xs" c="dimmed" ta="center" py="xl">{t('transcriptEmpty')}</Text>
             )}
+          </Stack>
+        </div>
+      </Tabs.Panel>
+
+      <Tabs.Panel value="stats">
+        <div style={{ padding: '12px' }}>
+          <Stack gap="sm">
+            <Divider size="xs" label={t('statsTab')} labelPosition="center" />
+            <Group grow>
+              <div className="stat-card">
+                <Text size="xl" fw={700}>{stats.totalScanned}</Text>
+                <Text size="xs" c="dimmed">{t('statsScanned')}</Text>
+              </div>
+              <div className="stat-card">
+                <Text size="xl" fw={700}>{stats.adsFound}</Text>
+                <Text size="xs" c="dimmed">{t('statsAdsFound')}</Text>
+              </div>
+            </Group>
+            <Group grow>
+              <div className="stat-card">
+                <Text size="xl" fw={700}>{formatDuration(stats.adsSkippedSeconds)}</Text>
+                <Text size="xs" c="dimmed">{t('statsTimeSaved')}</Text>
+              </div>
+              <div className="stat-card">
+                <Text size="xl" fw={700}>{stats.manualMarks}</Text>
+                <Text size="xs" c="dimmed">{t('statsManual')}</Text>
+              </div>
+            </Group>
+            <Button size="xs" variant="light" color="red" onClick={resetStats}>{t('statsReset')}</Button>
+
+            <Divider size="xs" label={t('manualAdTitle')} labelPosition="center" />
+            <Group gap="xs">
+              <NumberInput
+                placeholder={t('manualAdStart')}
+                value={manualStart}
+                onChange={setManualStart}
+                size="xs"
+                min={0}
+                style={{ flex: 1 }}
+                hideControls
+              />
+              <NumberInput
+                placeholder={t('manualAdEnd')}
+                value={manualEnd}
+                onChange={setManualEnd}
+                size="xs"
+                min={0}
+                style={{ flex: 1 }}
+                hideControls
+              />
+            </Group>
+            <Group gap="xs">
+              <Button size="xs" onClick={applyManualAd} style={{ flex: 1 }}>{t('manualAdApply')}</Button>
+              <Button size="xs" variant="light" color="red" onClick={clearManualAd} style={{ flex: 1 }}>{t('manualAdClear')}</Button>
+            </Group>
           </Stack>
         </div>
       </Tabs.Panel>

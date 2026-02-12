@@ -123,5 +123,50 @@
   },
   "transcriptCopied": {
     "message": "Copied to clipboard"
+  },
+  "statsTab": {
+    "message": "Stats"
+  },
+  "statsScanned": {
+    "message": "Videos Scanned"
+  },
+  "statsAdsFound": {
+    "message": "Ads Found"
+  },
+  "statsTimeSaved": {
+    "message": "Time Saved"
+  },
+  "statsManual": {
+    "message": "Manual Marks"
+  },
+  "statsReset": {
+    "message": "Reset Stats"
+  },
+  "statsResetDone": {
+    "message": "Stats reset"
+  },
+  "manualAdTitle": {
+    "message": "Manual Ad Mark"
+  },
+  "manualAdStart": {
+    "message": "Start time (sec)"
+  },
+  "manualAdEnd": {
+    "message": "End time (sec)"
+  },
+  "manualAdApply": {
+    "message": "Apply"
+  },
+  "manualAdApplied": {
+    "message": "Manual ad mark applied"
+  },
+  "manualAdInvalid": {
+    "message": "Invalid time range"
+  },
+  "manualAdClear": {
+    "message": "Clear Mark"
+  },
+  "manualAdCleared": {
+    "message": "Ad mark cleared"
   }
 }
